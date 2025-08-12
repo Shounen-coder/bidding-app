@@ -63,3 +63,79 @@ export interface ApiResponse<T> {
   message: string;
   timestamp: string;
 }
+
+
+
+// Add these new interfaces to your existing types file
+
+// Product interface (enhanced)
+export interface Product extends BaseEntity {
+  title: string;
+  description: string;
+  category_id: number;
+  category?: Category;
+  starting_price: number;
+  reserve_price?: number;
+  buy_now_price?: number;
+  bid_increment: number;
+  condition: 'new' | 'like-new' | 'good' | 'fair' | 'poor';
+  images: string[];
+  created_by: number;
+  creator?: User;
+}
+
+// Enhanced Auction interface
+export interface Auction extends BaseEntity {
+  product_id: number;
+  product?: Product;
+  start_time: string;
+  end_time: string;
+  current_price?: number;
+  current_winner_id?: number;
+  current_winner?: User;
+  total_bids: number;
+  status: 'scheduled' | 'active' | 'ended' | 'cancelled';
+  reserve_met: boolean;
+  time_remaining?: {
+    days: number;
+    hours: number;
+    minutes: number;
+    seconds: number;
+  };
+}
+
+// Bid interface (enhanced)
+export interface Bid extends BaseEntity {
+  auction_id: number;
+  auction?: Auction;
+  bidder_id: number;
+  bidder?: User;
+  amount: number;
+  bid_time: string;
+  status: 'active' | 'cancelled' | 'outbid' | 'winning';
+  priority_rank?: number;
+  is_auto_bid: boolean;
+}
+
+// Auction filtering interface
+export interface AuctionFilters {
+  category?: string;
+  status?: 'scheduled' | 'active' | 'ended';
+  price_min?: number;
+  price_max?: number;
+  condition?: string[];
+  search?: string;
+  sort_by?: 'ending_soon' | 'newest' | 'price_low' | 'price_high' | 'most_bids';
+  page?: number;
+  limit?: number;
+}
+
+// Auction search result
+export interface AuctionSearchResult {
+  auctions: Auction[];
+  total_count: number;
+  current_page: number;
+  total_pages: number;
+  filters_applied: AuctionFilters;
+}
+
