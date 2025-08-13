@@ -61,19 +61,19 @@ const Header: React.FC = () => {
             <nav className="hidden md:flex items-center space-x-8">
               <Link 
                 to="/auctions" 
-                className="text-gray-700 hover:text-blue-600 font-medium transition-colors"
+                className="text-gray-700 hover:text-[#2c5364] font-medium transition-colors"
               >
                 Browse Auctions
               </Link>
               <Link 
                 to="/category"
-                className="text-gray-700 hover:text-blue-600 font-medium transition-colors"
+                className="text-gray-700 hover:text-[#2c5364] font-medium transition-colors"
               >
                 Categories
               </Link>
               <Link 
                 to="/how-it-works" 
-                className="text-gray-700 hover:text-blue-600 font-medium transition-colors"
+                className="text-gray-700 hover:text-[#2c5364] font-medium transition-colors"
               >
                 How It Works
               </Link>
@@ -83,13 +83,13 @@ const Header: React.FC = () => {
             <div className="hidden md:flex items-center space-x-4">
               <Link 
                 to="/login" 
-                className="text-gray-700 hover:text-blue-600 font-medium transition-colors"
+                className="text-gray-700 hover:text-[#2c5364] font-medium transition-colors"
               >
                 Sign In
               </Link>
               <Link 
                 to="/register" 
-                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+                className="bg-[#2c5364] hover:bg-[#2c5364EE] text-white px-4 py-2 rounded-lg font-medium transition-colors"
               >
                 Sign Up
               </Link>

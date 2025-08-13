@@ -30,11 +30,11 @@ const Home: React.FC = () => {
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <button 
                 onClick={() => navigate('/auctions')}
-                className="bg-white text-blue-600 hover:bg-gray-100 font-semibold py-4 px-8 rounded-lg transition-colors text-lg"
+                className="bg-white text-[#2c5364] hover:bg-gray-100 font-semibold py-4 px-8 rounded-lg transition-colors text-lg"
               >
                 🔍 Browse Auctions
               </button>
-              <button className="border-2 border-white text-white hover:bg-white hover:text-blue-600 font-semibold py-4 px-8 rounded-lg transition-colors text-lg">
+              <button className="border-2 border-white text-white hover:bg-white hover:text-[#2c5364] font-semibold py-4 px-8 rounded-lg transition-colors text-lg">
                 📚 How It Works
               </button>
             </div>
@@ -89,7 +89,7 @@ const Home: React.FC = () => {
           </p>
           <button 
             onClick={() => navigate('/register')}
-            className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-4 px-8 rounded-lg transition-colors text-lg"
+            className="bg-[#2c5364] hover:bg-[#2c536499] cursor-pointer text-white font-semibold py-4 px-8 rounded-lg transition-colors text-lg"
           >
             Create Free Account
           </button>

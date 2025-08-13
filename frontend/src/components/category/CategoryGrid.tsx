@@ -34,20 +34,20 @@ const CategoryGrid: React.FC<CategoryGridProps> = ({ onCategorySelect }) => {
               className="group cursor-pointer transform transition-all duration-200 hover:scale-105"
               onClick={() => handleCategoryClick(category)}
             >
-              <div className="bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-200 p-6 text-center border-2 border-transparent hover:border-blue-200">
+              <div className="bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-200 p-6 text-center border-2 border-transparent hover:border-[#2c5364]">
                 <div 
                   className="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center text-2xl"
                   style={{ backgroundColor: `${category.color_code}20` }}
                 >
                   <span className="text-3xl">{category.icon_name}</span>
                 </div>
-                <h3 className="font-semibold text-gray-900 mb-2 group-hover:text-blue-600 transition-colors">
+                <h3 className="font-semibold text-gray-900 mb-2 group-hover:text-[#2c5364] transition-colors">
                   {category.name}
                 </h3>
                 <p className="text-sm text-gray-500 mb-3">
                   {category.description}
                 </p>
-                <div className="flex items-center justify-center text-xs text-blue-600">
+                <div className="flex items-center justify-center text-s text-[#2c5364EE]">
                   <span>{category.subcategories?.length || 0} subcategories</span>
                   <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -61,7 +61,7 @@ const CategoryGrid: React.FC<CategoryGridProps> = ({ onCategorySelect }) => {
         <div className="text-center mt-8">
           <Link 
             to="/auctions"
-            className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors inline-block"
+            className="bg-[#2c5364] hover:bg-[#2c5364EE] text-white font-semibold py-3 px-6 rounded-lg transition-colors inline-block"
           >
             View All Auctions
           </Link>
