@@ -50,7 +50,8 @@ const Header: React.FC = () => {
           <div className="flex justify-between items-center h-16">
             {/* Logo */}
             <Link to="/" className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
+              <div className="w-10 h-10 bg-gradient-to-r from-[#0f2027] via-[#203a43] to-[#2c5364]
+ rounded-lg flex items-center justify-center">
                 <span className="text-white font-bold text-2xl">B</span>
               </div>
               <span className="text-3xl font-bold text-gray-900">BIDDEX</span>

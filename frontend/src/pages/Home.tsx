@@ -16,7 +16,8 @@ const Home: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Hero Section */}
-      <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white">
+      <div className="bg-gradient-to-r from-[#0f2027] via-[#203a43] to-[#2c5364]
+ text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
           <div className="text-center">
             <h1 className="text-5xl md:text-6xl font-bold mb-6">
@@ -80,7 +81,7 @@ const Home: React.FC = () => {
       <CategoryGrid onCategorySelect={handleCategorySelect} />
 
       {/* CTA Section */}
-      <div className="bg-gray-900 text-white py-16">
+      <div className="bg-[#1a1a1a] text-white py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-4xl font-bold mb-4">Ready to Start Bidding?</h2>
           <p className="text-xl text-gray-300 mb-8 max-w-2xl mx-auto">
