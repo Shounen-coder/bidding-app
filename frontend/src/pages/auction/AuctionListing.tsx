@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { type AuctionFilters, type Auction } from '../../types';
+import { type AuctionFilters, type Auction, type Category, type Subcategory } from '../../types';
 import { sampleAuctions, sampleCategories } from '../../data/sampleAuctions';
 import AuctionCard from '../../components/auction/AuctionCard';
 
@@ -7,8 +7,11 @@ const AuctionListing: React.FC = () => {
   const [auctions, setAuctions] = useState<Auction[]>([]);
   const [filteredAuctions, setFilteredAuctions] = useState<Auction[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
+  const [availableSubcategories, setAvailableSubcategories] = useState<Subcategory[]>([]);
   const [filters, setFilters] = useState<AuctionFilters>({
     category: '',
+    subcategory: '',
     status: 'active',
     search: '',
     sort_by: 'ending_soon',
@@ -19,12 +22,31 @@ const AuctionListing: React.FC = () => {
   // Load auctions (simulate API call)
   useEffect(() => {
     setLoading(true);
-    // Simulate API delay
     setTimeout(() => {
       setAuctions(sampleAuctions);
       setLoading(false);
     }, 1000);
   }, []);
+
+  // Update available subcategories when category changes
+  useEffect(() => {
+    if (filters.category) {
+      const category = sampleCategories.find(cat => cat.slug === filters.category);
+      setSelectedCategory(category || null);
+      setAvailableSubcategories(category?.subcategories || []);
+      
+      // Reset subcategory when category changes
+      if (filters.subcategory) {
+        setFilters(prev => ({
+          ...prev,
+          subcategory: ''
+        }));
+      }
+    } else {
+      setSelectedCategory(null);
+      setAvailableSubcategories([]);
+    }
+  }, [filters.category]);
 
   // Filter and sort auctions
   useEffect(() => {
@@ -34,6 +56,13 @@ const AuctionListing: React.FC = () => {
     if (filters.category) {
       filtered = filtered.filter(auction => 
         auction.product?.category?.slug === filters.category
+      );
+    }
+
+    // Filter by subcategory
+    if (filters.subcategory) {
+      filtered = filtered.filter(auction => 
+        auction.product?.subcategory?.slug === filters.subcategory
       );
     }
 
@@ -47,7 +76,9 @@ const AuctionListing: React.FC = () => {
       const searchTerm = filters.search.toLowerCase();
       filtered = filtered.filter(auction =>
         auction.product?.title.toLowerCase().includes(searchTerm) ||
-        auction.product?.description.toLowerCase().includes(searchTerm)
+        auction.product?.description.toLowerCase().includes(searchTerm) ||
+        auction.product?.category?.name.toLowerCase().includes(searchTerm) ||
+        auction.product?.subcategory?.name.toLowerCase().includes(searchTerm)
       );
     }
 
@@ -94,7 +125,7 @@ const AuctionListing: React.FC = () => {
     setFilters(prev => ({
       ...prev,
       [key]: value,
-      page: 1 // Reset to first page when filters change
+      page: 1
     }));
   };
 
@@ -108,7 +139,7 @@ const AuctionListing: React.FC = () => {
               Discover Amazing Auctions
             </h1>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Browse thousands of unique items and place your bids on BIDDEX
+              Browse thousands of unique items across all categories on BIDDEX
             </p>
           </div>
         </div>
@@ -116,7 +147,7 @@ const AuctionListing: React.FC = () => {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex flex-col lg:flex-row gap-8">
-          {/* Sidebar Filters */}
+          {/* Enhanced Sidebar Filters */}
           <div className="lg:w-1/4">
             <div className="bg-white rounded-lg shadow-md p-6 sticky top-4">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Filters</h3>
@@ -153,6 +184,27 @@ const AuctionListing: React.FC = () => {
                   ))}
                 </select>
               </div>
+
+              {/* Subcategory Filter */}
+              {availableSubcategories.length > 0 && (
+                <div className="mb-6">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Subcategory
+                  </label>
+                  <select
+                    value={filters.subcategory || ''}
+                    onChange={(e) => handleFilterChange('subcategory', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="">All {selectedCategory?.name}</option>
+                    {availableSubcategories.map(subcategory => (
+                      <option key={subcategory.id} value={subcategory.slug}>
+                        {subcategory.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
               {/* Status Filter */}
               <div className="mb-6">
@@ -193,10 +245,53 @@ const AuctionListing: React.FC = () => {
                 </div>
               </div>
 
+              {/* Active Filters Display */}
+              {(filters.category || filters.subcategory || filters.search) && (
+                <div className="mb-6">
+                  <h4 className="text-sm font-medium text-gray-700 mb-2">Active Filters:</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {filters.category && (
+                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                        {selectedCategory?.name}
+                        <button
+                          onClick={() => handleFilterChange('category', '')}
+                          className="ml-1 text-blue-600 hover:text-blue-800"
+                        >
+                          ×
+                        </button>
+                      </span>
+                    )}
+                    {filters.subcategory && (
+                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                        {availableSubcategories.find(sub => sub.slug === filters.subcategory)?.name}
+                        <button
+                          onClick={() => handleFilterChange('subcategory', '')}
+                          className="ml-1 text-green-600 hover:text-green-800"
+                        >
+                          ×
+                        </button>
+                      </span>
+                    )}
+                    {filters.search && (
+                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                        Search: "{filters.search}"
+                        <button
+                          onClick={() => handleFilterChange('search', '')}
+                          className="ml-1 text-purple-600 hover:text-purple-800"
+                        >
+                          ×
+                        </button>
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {/* Clear Filters */}
               <button
                 onClick={() => setFilters({
                   category: '',
+                  subcategory: '',
                   status: 'active',
                   search: '',
                   sort_by: 'ending_soon',
@@ -217,6 +312,8 @@ const AuctionListing: React.FC = () => {
               <div className="mb-4 sm:mb-0">
                 <p className="text-gray-600">
                   Showing {filteredAuctions.length} auctions
+                  {filters.category && ` in ${selectedCategory?.name}`}
+                  {filters.subcategory && ` > ${availableSubcategories.find(sub => sub.slug === filters.subcategory)?.name}`}
                 </p>
               </div>
               
@@ -277,6 +374,7 @@ const AuctionListing: React.FC = () => {
                     <button
                       onClick={() => setFilters({
                         category: '',
+                        subcategory: '',
                         status: 'active',
                         search: '',
                         sort_by: 'ending_soon',
@@ -292,7 +390,7 @@ const AuctionListing: React.FC = () => {
               </>
             )}
 
-            {/* Load More Button (pagination placeholder) */}
+            {/* Load More Button */}
             {!loading && filteredAuctions.length > 0 && (
               <div className="text-center mt-8">
                 <button className="bg-gray-100 hover:bg-gray-200 text-gray-700 py-3 px-6 rounded-lg font-medium transition-colors duration-200">

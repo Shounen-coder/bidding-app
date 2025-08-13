@@ -34,6 +34,17 @@ export interface RegisterData {
 }
 
 // Category types
+
+export interface Subcategory extends BaseEntity {
+  parent_category_id: number;
+  name: string;
+  slug: string;
+  description?: string;
+  icon_name?: string;
+  sort_order: number;
+  is_active: boolean;
+}
+
 export interface Category extends BaseEntity {
   name: string;
   slug: string;
@@ -42,6 +53,7 @@ export interface Category extends BaseEntity {
   color_code?: string;
   sort_order: number;
   is_active: boolean;
+  subcategories?: Subcategory[];
 }
 
 // Auction types
@@ -73,7 +85,9 @@ export interface Product extends BaseEntity {
   title: string;
   description: string;
   category_id: number;
+  subcategory_id?: number; // New subcategory reference
   category?: Category;
+  subcategory?: Subcategory; // New subcategory relationship
   starting_price: number;
   reserve_price?: number;
   buy_now_price?: number;
@@ -118,8 +132,10 @@ export interface Bid extends BaseEntity {
 }
 
 // Auction filtering interface
+// Update AuctionFilters to support subcategories
 export interface AuctionFilters {
   category?: string;
+  subcategory?: string; // New subcategory filter
   status?: 'scheduled' | 'active' | 'ended';
   price_min?: number;
   price_max?: number;

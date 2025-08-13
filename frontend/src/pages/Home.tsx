@@ -1,11 +1,16 @@
 import React from 'react';
 import CategoryGrid from '../components/category/CategoryGrid';
 import { type Category } from '../types';
+import { useNavigate } from 'react-router-dom';
 
 const Home: React.FC = () => {
+  const navigate = useNavigate();
+
+  // Updated handler - now only receives category (no subcategory on homepage)
   const handleCategorySelect = (category: Category) => {
     console.log('Selected category:', category);
-    // TODO: Navigate to category page or filter auctions
+    // Since we're using direct Link navigation in CategoryGrid,
+    // this is mainly for debugging/analytics
   };
 
   return (
@@ -22,7 +27,10 @@ const Home: React.FC = () => {
               discover treasures, and win amazing deals from trusted sellers.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <button className="bg-white text-blue-600 hover:bg-gray-100 font-semibold py-4 px-8 rounded-lg transition-colors text-lg">
+              <button 
+                onClick={() => navigate('/auctions')}
+                className="bg-white text-blue-600 hover:bg-gray-100 font-semibold py-4 px-8 rounded-lg transition-colors text-lg"
+              >
                 🔍 Browse Auctions
               </button>
               <button className="border-2 border-white text-white hover:bg-white hover:text-blue-600 font-semibold py-4 px-8 rounded-lg transition-colors text-lg">
@@ -68,7 +76,7 @@ const Home: React.FC = () => {
         </div>
       </div>
 
-      {/* Categories Section */}
+      {/* Categories Section - Now uses the clean CategoryGrid */}
       <CategoryGrid onCategorySelect={handleCategorySelect} />
 
       {/* CTA Section */}
@@ -78,7 +86,10 @@ const Home: React.FC = () => {
           <p className="text-xl text-gray-300 mb-8 max-w-2xl mx-auto">
             Join thousands of satisfied buyers and sellers on BIDDEX
           </p>
-          <button className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-4 px-8 rounded-lg transition-colors text-lg">
+          <button 
+            onClick={() => navigate('/register')}
+            className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-4 px-8 rounded-lg transition-colors text-lg"
+          >
             Create Free Account
           </button>
         </div>

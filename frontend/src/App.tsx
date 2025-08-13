@@ -1,3 +1,4 @@
+// import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 
 // Layout
@@ -10,6 +11,8 @@ import Register from './pages/auth/Register';
 import Profile from './pages/dashboard/Profile';
 import AuctionTest from './pages/auction/AuctionTest';
 import AuctionListing from './pages/auction/AuctionListing';
+import CategoryIndex from './pages/category/CategoryIndex'; // New import
+import CategoryPage from './pages/category/CategoryPage';
 
 function App() {
   return (
@@ -22,6 +25,9 @@ function App() {
           <Route path="/profile" element={<Profile />} />
           <Route path="/test" element={<AuctionTest />} />
           <Route path="/auctions" element={<AuctionListing />} />
+          <Route path="/category" element={<CategoryIndex />} /> {/* New route */}
+          <Route path="/category/:categorySlug" element={<CategoryPage />} />
+          <Route path="/category/:categorySlug/:subcategorySlug" element={<CategoryPage />} />
         </Routes>
       </Layout>
     </Router>
