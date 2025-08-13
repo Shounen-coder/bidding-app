@@ -42,7 +42,7 @@ const Register: React.FC = () => {
       console.log('Registration attempt with:', data);
       
       // Remove confirmPassword from data before sending to API
-      const { confirmPassword, ...registrationData } = data;
+      const { confirmPassword, ..._registrationData } = data;
       
       // Simulate API call delay
       await new Promise(resolve => setTimeout(resolve, 2000));

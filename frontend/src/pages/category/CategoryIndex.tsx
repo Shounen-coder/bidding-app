@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { type Category } from '../../types';
+// import { type Category } from '../../types'; //will use later
 import { sampleCategories, sampleAuctions } from '../../data/sampleAuctions';
 
 const CategoryIndex: React.FC = () => {
