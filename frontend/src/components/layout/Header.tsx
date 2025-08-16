@@ -1,9 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useDispatch, useSelector } from 'react-redux';
+import { logoutUser } from '../../store/slices/authSlice';
+import { type RootState, type AppDispatch } from '../../store';
 
 const Header: React.FC = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
+  const dispatch = useDispatch<AppDispatch>();
+  
+  // Get auth state from Redux
+  const { isAuthenticated, user } = useSelector((state: RootState) => state.auth);
 
   // Close mobile menu when route changes
   useEffect(() => {
@@ -41,7 +49,14 @@ const Header: React.FC = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen);
   };
 
-
+  const handleLogout = async () => {
+    try {
+      await dispatch(logoutUser()).unwrap();
+      navigate('/');
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
+  };
 
   return (
     <>
@@ -50,8 +65,7 @@ const Header: React.FC = () => {
           <div className="flex justify-between items-center h-16">
             {/* Logo */}
             <Link to="/" className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-gradient-to-r from-[#0f2027] via-[#203a43] to-[#2c5364]
- rounded-lg flex items-center justify-center">
+              <div className="w-10 h-10 bg-gradient-to-r from-[#0f2027] via-[#203a43] to-[#2c5364] rounded-lg flex items-center justify-center">
                 <span className="text-white font-bold text-2xl">B</span>
               </div>
               <span className="text-3xl font-bold text-gray-900">BIDDEX</span>
@@ -79,20 +93,42 @@ const Header: React.FC = () => {
               </Link>
             </nav>
 
-            {/* Desktop Auth Buttons */}
+            {/* Desktop Auth Buttons - Updated with Authentication */}
             <div className="hidden md:flex items-center space-x-4">
-              <Link 
-                to="/login" 
-                className="text-gray-700 hover:text-[#2c5364] font-medium transition-colors"
-              >
-                Sign In
-              </Link>
-              <Link 
-                to="/register" 
-                className="bg-[#2c5364] hover:bg-[#2c5364EE] text-white px-4 py-2 rounded-lg font-medium transition-colors"
-              >
-                Sign Up
-              </Link>
+              {isAuthenticated && user ? (
+                <div className="flex items-center space-x-4">
+                  <span className="text-gray-700">
+                    Welcome, {user.firstName}!
+                  </span>
+                  <Link
+                    to="/profile"
+                    className="text-gray-700 hover:text-[#2c5364] font-medium transition-colors"
+                  >
+                    Profile
+                  </Link>
+                  <button
+                    onClick={handleLogout}
+                    className="text-gray-700 hover:text-[#2c5364] font-medium transition-colors cursor-pointer"
+                  >
+                    Logout
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <Link 
+                    to="/login" 
+                    className="text-gray-700 hover:text-[#2c5364] font-medium transition-colors"
+                  >
+                    Sign In
+                  </Link>
+                  <Link 
+                    to="/register" 
+                    className="bg-[#2c5364] hover:bg-[#2c5364EE] text-white px-4 py-2 rounded-lg font-medium transition-colors"
+                  >
+                    Sign Up
+                  </Link>
+                </>
+              )}
             </div>
 
             {/* Mobile menu button */}
@@ -165,6 +201,25 @@ const Header: React.FC = () => {
                   </svg>
                 </button>
               </div>
+
+              {/* User Info Section (if authenticated) */}
+              {isAuthenticated && user && (
+                <div className="p-4 bg-blue-50 border-b border-gray-200">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center">
+                      <span className="text-white font-medium text-sm">
+                        {user.firstName?.[0]}{user.lastName?.[0]}
+                      </span>
+                    </div>
+                    <div>
+                      <div className="text-sm font-medium text-gray-900">
+                        {user.firstName} {user.lastName}
+                      </div>
+                      <div className="text-xs text-gray-500">{user.email}</div>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Mobile navigation */}
               <nav className="flex-1 px-4 py-6 space-y-6">
@@ -240,23 +295,54 @@ const Header: React.FC = () => {
                     </Link>
                   </div>
                 </div>
+
+                {/* User Menu (if authenticated) */}
+                {isAuthenticated && (
+                  <div className="space-y-4">
+                    <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">
+                      Account
+                    </h3>
+                    <div className="space-y-3">
+                      <Link
+                        to="/profile"
+                        className="flex items-center px-3 py-2 text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                      >
+                        <svg className="w-5 h-5 mr-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        </svg>
+                        My Profile
+                      </Link>
+                      <button
+                        onClick={handleLogout}
+                        className="flex items-center w-full px-3 py-2 text-base font-medium text-gray-700 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                      >
+                        <svg className="w-5 h-5 mr-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                        </svg>
+                        Logout
+                      </button>
+                    </div>
+                  </div>
+                )}
               </nav>
 
-              {/* Mobile Auth Buttons */}
-              <div className="border-t border-gray-200 p-4 space-y-3">
-                <Link
-                  to="/login"
-                  className="block w-full text-center bg-gray-100 hover:bg-gray-200 text-gray-700 py-3 px-4 rounded-lg font-medium transition-colors"
-                >
-                  Sign In
-                </Link>
-                <Link
-                  to="/register"
-                  className="block w-full text-center bg-blue-600 hover:bg-blue-700 text-white py-3 px-4 rounded-lg font-medium transition-colors"
-                >
-                  Sign Up
-                </Link>
-              </div>
+              {/* Mobile Auth Buttons (if not authenticated) */}
+              {!isAuthenticated && (
+                <div className="border-t border-gray-200 p-4 space-y-3">
+                  <Link
+                    to="/login"
+                    className="block w-full text-center bg-gray-100 hover:bg-gray-200 text-gray-700 py-3 px-4 rounded-lg font-medium transition-colors"
+                  >
+                    Sign In
+                  </Link>
+                  <Link
+                    to="/register"
+                    className="block w-full text-center bg-blue-600 hover:bg-blue-700 text-white py-3 px-4 rounded-lg font-medium transition-colors"
+                  >
+                    Sign Up
+                  </Link>
+                </div>
+              )}
             </div>
           </div>
         </div>

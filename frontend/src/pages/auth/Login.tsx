@@ -1,16 +1,20 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
-import {type Resolver} from "react-hook-form";
+import { type Resolver } from "react-hook-form";
+import { useDispatch, useSelector } from 'react-redux';
 import { loginSchema } from '../../utils/validationSchemas';
 import FormField from '../../components/ui/FormField';
 import LoadingButton from '../../components/ui/LoadingButton';
+import { loginUser, clearError, clearSuccessMessage } from '../../store/slices/authSlice';
+import { type RootState, type AppDispatch } from '../../store';
 import { type LoginCredentials } from '../../types';
 
 const Login: React.FC = () => {
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitError, setSubmitError] = useState<string | null>(null);
+  const dispatch = useDispatch<AppDispatch>();
+  const navigate = useNavigate();
+  const { isLoading, error, successMessage, isAuthenticated } = useSelector((state: RootState) => state.auth);
 
   // React Hook Form setup
   const {
@@ -22,32 +26,29 @@ const Login: React.FC = () => {
     mode: 'onChange' // Validate as user types
   });
 
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/');
+    }
+  }, [isAuthenticated, navigate]);
+
+  // Clear messages on unmount
+  useEffect(() => {
+    return () => {
+      dispatch(clearError());
+      dispatch(clearSuccessMessage());
+    };
+  }, [dispatch]);
+
   // Form submission handler
   const onSubmit = async (data: LoginCredentials) => {
     try {
-      setIsSubmitting(true);
-      setSubmitError(null);
-      
-      console.log('Login attempt with:', data);
-      
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // TODO: Replace with actual API call
-      // const response = await authAPI.login(data);
-      
-      // Simulate success/failure
-      if (data.email === 'test@biddex.com') {
-        console.log('Login successful!');
-        // TODO: Redirect to dashboard
-      } else {
-        throw new Error('Invalid email or password');
-      }
-      
+      await dispatch(loginUser(data)).unwrap();
+      // Navigation will be handled by useEffect when isAuthenticated changes
     } catch (error) {
-      setSubmitError(error instanceof Error ? error.message : 'Login failed. Please try again.');
-    } finally {
-      setIsSubmitting(false);
+      // Error is handled by Redux
+      console.error('Login failed:', error);
     }
   };
 
@@ -92,14 +93,14 @@ const Login: React.FC = () => {
               required
             />
 
-            {/* Submit Error */}
-            {submitError && (
+            {/* Backend Error Display */}
+            {error && (
               <div className="bg-red-50 border border-red-200 rounded-md p-4">
                 <div className="flex">
                   <svg className="w-5 h-5 text-red-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
                   </svg>
-                  <p className="text-sm text-red-700">{submitError}</p>
+                  <p className="text-sm text-red-700">{error}</p>
                 </div>
               </div>
             )}
@@ -107,12 +108,12 @@ const Login: React.FC = () => {
             {/* Submit Button */}
             <LoadingButton
               type="submit"
-              loading={isSubmitting}
+              loading={isLoading}
               disabled={!isValid}
               variant="primary"
               className="w-full"
             >
-              {isSubmitting ? 'Signing in...' : 'Sign In'}
+              {isLoading ? 'Signing in...' : 'Sign In'}
             </LoadingButton>
           </form>
 
@@ -141,10 +142,10 @@ const Login: React.FC = () => {
           </div>
         </div>
 
-        {/* Demo Credentials */}
+        {/* Demo Credentials - Updated for real backend */}
         <div className="mt-4 bg-blue-50 border border-blue-200 rounded-md p-4">
           <p className="text-sm text-blue-800">
-            <strong>Demo:</strong> Use email "test@biddex.com" with any password to test login
+            <strong>Tip:</strong> Create a new account or use any registered email to test login
           </p>
         </div>
       </div>

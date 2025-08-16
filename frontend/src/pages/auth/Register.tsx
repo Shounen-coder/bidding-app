@@ -1,12 +1,15 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
-import {type Resolver} from "react-hook-form";
+import { type Resolver } from "react-hook-form";
+import { useDispatch, useSelector } from 'react-redux';
 import { registerSchema } from '../../utils/validationSchemas';
 import FormField from '../../components/ui/FormField';
 import LoadingButton from '../../components/ui/LoadingButton';
 import PasswordStrength from '../../components/ui/PasswordStrength';
+import { registerUser, clearError, clearSuccessMessage } from '../../store/slices/authSlice';
+import { type RootState, type AppDispatch } from '../../store';
 import { type RegisterData } from '../../types';
 
 // Extended interface for form with confirm password
@@ -15,9 +18,10 @@ interface RegisterFormData extends RegisterData {
 }
 
 const Register: React.FC = () => {
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitError, setSubmitError] = useState<string | null>(null);
   const [registrationSuccess, setRegistrationSuccess] = useState(false);
+  const dispatch = useDispatch<AppDispatch>();
+  const navigate = useNavigate();
+  const { isLoading, error, successMessage, isAuthenticated } = useSelector((state: RootState) => state.auth);
 
   // React Hook Form setup
   const {
@@ -33,33 +37,41 @@ const Register: React.FC = () => {
   // Watch password for strength indicator
   const watchedPassword = watch('password', '');
 
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/');
+    }
+  }, [isAuthenticated, navigate]);
+
+  // Clear messages on unmount
+  useEffect(() => {
+    return () => {
+      dispatch(clearError());
+      dispatch(clearSuccessMessage());
+    };
+  }, [dispatch]);
+
   // Form submission handler
   const onSubmit = async (data: RegisterFormData) => {
     try {
-      setIsSubmitting(true);
-      setSubmitError(null);
-      
-      console.log('Registration attempt with:', data);
-      
       // Remove confirmPassword from data before sending to API
       const { confirmPassword, ...registrationData } = data;
-      console.log('Registration data:', registrationData);
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 2000));
       
-      // TODO: Replace with actual API call
-      // const response = await authAPI.register(registrationData);
+      await dispatch(registerUser({
+        username: registrationData.username,
+        email: registrationData.email,
+        password: registrationData.password,
+        confirmPassword: data.confirmPassword,
+        firstName: registrationData.first_name,
+        lastName: registrationData.last_name,
+        phone: registrationData.phone
+      })).unwrap();
       
-      // Simulate success
-      console.log('Registration successful!');
       setRegistrationSuccess(true);
-      
-      // TODO: Redirect to email verification or login page
-      
     } catch (error) {
-      setSubmitError(error instanceof Error ? error.message : 'Registration failed. Please try again.');
-    } finally {
-      setIsSubmitting(false);
+      // Error is handled by Redux
+      console.error('Registration failed:', error);
     }
   };
 
@@ -204,14 +216,14 @@ const Register: React.FC = () => {
               </label>
             </div>
 
-            {/* Submit Error */}
-            {submitError && (
+            {/* Backend Error Display */}
+            {error && (
               <div className="bg-red-50 border border-red-200 rounded-md p-4">
                 <div className="flex">
                   <svg className="w-5 h-5 text-red-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
                   </svg>
-                  <p className="text-sm text-red-700">{submitError}</p>
+                  <p className="text-sm text-red-700">{error}</p>
                 </div>
               </div>
             )}
@@ -219,12 +231,12 @@ const Register: React.FC = () => {
             {/* Submit Button */}
             <LoadingButton
               type="submit"
-              loading={isSubmitting}
+              loading={isLoading}
               disabled={!isValid}
               variant="primary"
               className="w-full"
             >
-              {isSubmitting ? 'Creating Account...' : 'Create Account'}
+              {isLoading ? 'Creating Account...' : 'Create Account'}
             </LoadingButton>
           </form>
 
