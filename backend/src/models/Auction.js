@@ -356,6 +356,38 @@ getNextMinBid() {
   return currentBid + increment;
 }
 
+// Get bids since a specific timestamp (for incremental updates)
+static async findBidsSince(auctionId, sinceTimestamp) {
+  const query = `
+    SELECT b.*, u.username, u.first_name, u.last_name, u.email
+    FROM bids b
+    JOIN users u ON b.bidder_id = u.id
+    WHERE b.auction_id = $1 AND b.bid_time > $2
+    ORDER BY b.bid_time DESC
+  `;
+  
+  try {
+    const result = await pool.query(query, [auctionId, sinceTimestamp]);
+    return result.rows.map(row => ({
+      id: row.id,
+      auctionId: row.auction_id,
+      bidderId: row.bidder_id,
+      amount: parseFloat(row.amount),
+      bidTime: row.bid_time,
+      status: row.status,
+      isAutoBid: row.is_auto_bid || false,
+      bidder: {
+        username: row.username,
+        firstName: row.first_name,
+        lastName: row.last_name,
+        email: row.email
+      }
+    }));
+  } catch (error) {
+    console.error('Error fetching bids since timestamp:', error);
+    throw error;
+  }
+}
 
 
 toJSON() {

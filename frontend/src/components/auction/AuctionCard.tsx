@@ -79,7 +79,7 @@ const AuctionCard: React.FC<AuctionCardProps> = ({
       <Link to={`/auctions/${auction.id}`} className="block group">
         {/* Image Section */}
         <div className={clsx('relative overflow-hidden rounded-t-lg', imageVariants[variant])}>
-          <img
+          {/* <img
             src={primaryImage}
             alt={product.title}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
@@ -87,7 +87,9 @@ const AuctionCard: React.FC<AuctionCardProps> = ({
               // Fallback to placeholder if image doesn't exist
               e.currentTarget.src = 'https://via.placeholder.com/400x300?text=No+Image';
             }}
-          />
+          /> */}
+          
+          {/* have to add images in the fututer until then its commented */}
           
           {/* Overlay badges */}
           <div className="absolute top-3 left-3 space-y-2">
@@ -161,7 +163,7 @@ const AuctionCard: React.FC<AuctionCardProps> = ({
           </h3>
 
           {/* Description (only for featured) */}
-          {variant === 'featured' && (
+          {variant === 'featured' || (
             <p className="text-sm text-gray-600 mb-3 line-clamp-2">
               {product.description}
             </p>

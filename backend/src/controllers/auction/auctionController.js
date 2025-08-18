@@ -170,9 +170,49 @@ const getFeaturedAuctions = async (req, res) => {
   }
 };
 
+// Get latest bids for an auction (for live updates)
+const getAuctionBids = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { since } = req.query; // optional timestamp for incremental updates
+
+    if (!id || isNaN(parseInt(id))) {
+      return res.status(400).json({
+        success: false,
+        message: 'Valid auction ID is required'
+      });
+    }
+
+    let bids;
+    if (since) {
+      // Only get bids newer than 'since' timestamp for efficiency
+      bids = await Auction.findBidsSince(parseInt(id), since);
+    } else {
+      // Get all bids
+      bids = await Auction.findBidsByAuctionId(parseInt(id));
+    }
+
+    res.json({
+      success: true,
+      data: {
+        bids,
+        timestamp: new Date().toISOString()
+      }
+    });
+  } catch (error) {
+    console.error('Get auction bids error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch bid updates'
+    });
+  }
+};
+
+
 module.exports = {
   getAllAuctions,
   getAuctionById,
   getAuctionsByCategory,
-  getFeaturedAuctions
+  getFeaturedAuctions,
+  getAuctionBids
 };

@@ -9,6 +9,8 @@ router.get('/', optionalAuth, auctionController.getAllAuctions);
 router.get('/featured', optionalAuth, auctionController.getFeaturedAuctions);
 router.get('/category/:categorySlug', optionalAuth, auctionController.getAuctionsByCategory);
 router.get('/:id', optionalAuth, auctionController.getAuctionById);
+router.get('/:id/bids', auctionController.getAuctionBids); // GET /api/auctions/:id/bids
+
 
 // Protected routes will be added later for creating auctions, bidding, etc.
 

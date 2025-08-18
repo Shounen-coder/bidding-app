@@ -1,3 +1,4 @@
+const { title } = require('process');
 const { pool } = require('../config/database');
 
 const sampleProducts = [
@@ -11,6 +12,30 @@ const sampleProducts = [
     bid_increment: 25.00,
     condition: 'new',
     images: ['iphone-1.jpg', 'iphone-2.jpg'],
+    created_by: 1 // Admin user
+  },
+  {
+    title: "Samsung Galaxy S23 Ultra - 512GB",
+    description: "Samsung Galaxy S23 Ultra, 512GB storage, Phantom Black color.",
+    category_id: 1, // Electronics
+    subcategory_id: 101, // Smartphones
+    starting_price: 1199.99,
+    reserve_price: 1250.00,
+    bid_increment: 50.00,
+    condition: 'new',
+    images: ['samsung-1.jpg', 'samsung-2.jpg'],
+    created_by: 1 // Admin user
+  },
+  {
+    title: "Google Pixel 7 Pro - 128GB",
+    description: "Google Pixel 7 Pro, 128GB storage, Obsidian color.",
+    category_id: 1, // Electronics
+    subcategory_id: 101, // Smartphones
+    starting_price: 899.99,
+    reserve_price: 950.00,
+    bid_increment: 25.00,
+    condition: 'new',
+    images: ['pixel-1.jpg', 'pixel-2.jpg'],
     created_by: 1 // Admin user
   },
   {
@@ -38,6 +63,29 @@ const sampleProducts = [
     created_by: 1
   },
   {
+    title: "Nike Air Max 270",
+    description: "Nike Air Max 270 in black and white. Size 10, brand new.",
+    category_id: 2, // Fashion & Accessories
+    subcategory_id: 204, // Shoes & Footwear
+    starting_price: 150.00,
+    bid_increment: 15.00,
+    condition: 'new',
+    images: ['airmax-1.jpg', 'airmax-2.jpg'],
+    created_by: 1
+  },
+  {
+    title: "Adidas Ultraboost 21",
+    description: "Adidas Ultraboost 21 in black. Size 10, brand new.",
+    category_id: 2, // Fashion & Accessories
+    subcategory_id: 204, // Shoes & Footwear
+    starting_price: 180.00,
+    bid_increment: 18.00,
+    condition: 'new',
+    images: ['ultraboost-1.jpg', 'ultraboost-2.jpg'],
+    created_by: 2
+  },
+
+  {
     title: "Nike Air Jordan 1 Retro High OG",
     description: "Size 10 Nike Air Jordan 1 in Chicago colorway. New in box, never worn.",
     category_id: 2, // Fashion & Accessories
@@ -59,7 +107,32 @@ const sampleProducts = [
     condition: 'good',
     images: ['picasso-1.jpg'],
     created_by: 1
-  }
+  },
+  {
+    title: "Antique Map",
+    description: "A rare antique map from the 18th century, beautifully framed.",
+    category_id: 5, // Art & Collectibles
+    subcategory_id: 502, // Antiques
+    starting_price: 1200.00,
+    reserve_price: 1800.00,
+    bid_increment: 100.00,
+    condition: 'good',
+    images: ['map-1.jpg'],
+    created_by: 1
+  },
+  {
+    title: "Antique Vase",
+    description: "A stunning antique vase from the 19th century, hand-painted with intricate designs.",
+    category_id: 5, // Art & Collectibles
+    subcategory_id: 502, // Antiques
+    starting_price: 800.00,
+    reserve_price: 1200.00,
+    bid_increment: 50.00,
+    condition: 'good',
+    images: ['vase-1.jpg'],
+    created_by: 1
+  },
+  
 ];
 
 const seedAuctions = async () => {

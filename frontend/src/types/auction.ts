@@ -63,4 +63,25 @@ export interface Auction {
     firstName: string;
     lastName: string;
   };
+  bids?: Array<{
+    id: number;
+    amount: number;
+    bidTime: string;
+    status: string;
+    isAutoBid?: boolean;
+    bidder: {
+      username: string;
+      firstName: string;
+      lastName: string;
+    };
+  }>;
+
+  timeRemaining?: {
+    days: number;
+    hours: number;
+    minutes: number;
+    seconds: number;
+  };
+
+  nextMinBid?: number;
 }
