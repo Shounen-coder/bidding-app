@@ -1,6 +1,7 @@
 const Auction = require('../../models/Auction');
 const Product = require('../../models/Product');
-
+const Bid = require("../../models/Bid");
+const {pool} = require("../../config/database")
 // Get all auctions with filtering, sorting, and pagination
 const getAllAuctions = async (req, res) => {
   try {
@@ -206,7 +207,207 @@ const getAuctionBids = async (req, res) => {
       message: 'Failed to fetch bid updates'
     });
   }
+
+
 };
+// Place a bid on an auction
+const placeBid = async (req, res) => {
+  try {
+    const auctionId = parseInt(req.params.id, 10);
+    const { amount } = req.body;
+    const userId = req.user?.id || 1; // For testing, use user ID 1 if no auth
+
+    // ================== VALIDATION RULES ==================
+
+    // 1. Basic Input Validation
+    if (!auctionId || isNaN(auctionId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid auction ID'
+      });
+    }
+
+    if (!amount || typeof amount !== 'number' || amount <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid bid amount. Must be a positive number.'
+      });
+    }
+
+    // 2. Fetch Current Auction Details
+    const auction = await Auction.findByIdWithDetails(auctionId);
+    if (!auction) {
+      return res.status(404).json({
+        success: false,
+        message: 'Auction not found'
+      });
+    }
+
+    // 3. Auction Status Check
+    if (auction.status !== 'active') {
+      return res.status(400).json({
+        success: false,
+        message: `Cannot bid on ${auction.status} auction. Only active auctions accept bids.`
+      });
+    }
+
+    // 4. Auction Time Check
+    const now = new Date();
+    const endTime = new Date(auction.endTime);
+    if (now >= endTime) {
+      return res.status(400).json({
+        success: false,
+        message: 'Auction has ended. No more bids accepted.'
+      });
+    }
+
+    // 5. Minimum Bid Amount Validation
+    const currentPrice = auction.currentPrice || auction.product.startingPrice;
+    const requiredMinBid = currentPrice + auction.product.bidIncrement;
+    
+    if (amount < requiredMinBid) {
+      return res.status(400).json({
+        success: false,
+        message: `Minimum bid is ${requiredMinBid.toFixed(2)}. Your bid of ${amount.toFixed(2)} is too low.`
+      });
+    }
+
+    // 6. Self-Bidding Prevention
+    if (userId === auction.currentWinnerId) {
+      return res.status(400).json({
+        success: false,
+        message: "You're already the highest bidder. Wait for someone else to outbid you."
+      });
+    }
+
+    // 7. Seller Self-Bidding Prevention (Shill Bidding)
+    if (userId === auction.seller?.id || userId === auction.product?.createdBy) {
+      return res.status(403).json({
+        success: false,
+        message: 'Sellers cannot bid on their own auctions.'
+      });
+    }
+
+    // 8. Rate Limiting Check (Prevent rapid-fire bidding)
+    const recentBidsQuery = `
+      SELECT COUNT(*) as bid_count 
+      FROM bids 
+      WHERE bidder_id = $1 AND auction_id = $2 
+      AND bid_time > NOW() - INTERVAL '30 seconds'
+    `;
+    const recentBids = await pool.query(recentBidsQuery, [userId, auctionId]);
+    
+    if (parseInt(recentBids.rows[0].bid_count) >= 3) {
+      return res.status(429).json({
+        success: false,
+        message: 'Too many bids in a short time. Please wait 30 seconds before bidding again.'
+      });
+    }
+
+    // ================== TRANSACTION: BID PLACEMENT ==================
+    
+    // Start database transaction to ensure data consistency
+    const client = await pool.connect();
+    
+    try {
+      await client.query('BEGIN');
+
+      // 9. Create the new bid
+      const bidQuery = `
+        INSERT INTO bids (auction_id, bidder_id, amount, bid_time, status, is_auto_bid)
+        VALUES ($1, $2, $3, $4, $5, $6)
+        RETURNING *
+      `;
+      const bidValues = [auctionId, userId, amount, new Date(), 'active', false];
+      const bidResult = await client.query(bidQuery, bidValues);
+      const newBid = bidResult.rows[0];
+
+      // 10. Update auction current price, winner, and bid count
+      const auctionUpdateQuery = `
+        UPDATE auctions 
+        SET current_price = $1, 
+            current_winner_id = $2,
+            total_bids = total_bids + 1,
+            updated_at = NOW()
+        WHERE id = $3
+      `;
+      await client.query(auctionUpdateQuery, [amount, userId, auctionId]);
+
+      // 11. Mark previous bids as 'outbid' (except the new winning bid)
+      const outbidQuery = `
+        UPDATE bids 
+        SET status = 'outbid' 
+        WHERE auction_id = $1 AND bidder_id != $2 AND status = 'active'
+      `;
+      await client.query(outbidQuery, [auctionId, userId]);
+
+      // 12. Set the new bid as 'winning'
+      await client.query(
+        'UPDATE bids SET status = $1 WHERE id = $2',
+        ['winning', newBid.id]
+      );
+
+      // 13. Check Reserve Price Met
+      let reserveMet = auction.reserveMet;
+      if (!reserveMet && auction.product.reservePrice && amount >= auction.product.reservePrice) {
+        await client.query(
+          'UPDATE auctions SET reserve_met = true WHERE id = $1',
+          [auctionId]
+        );
+        reserveMet = true;
+      }
+
+      await client.query('COMMIT');
+
+      // ================== SUCCESS RESPONSE ==================
+
+      // Get bidder details for response
+      const bidderQuery = `SELECT username, first_name, last_name, email FROM users WHERE id = $1`;
+      const bidderResult = await pool.query(bidderQuery, [userId]);
+      const bidder = bidderResult.rows[0];
+
+      res.status(201).json({
+        success: true,
+        data: {
+          bid: {
+            id: newBid.id,
+            amount: parseFloat(newBid.amount),
+            bidTime: newBid.bid_time,
+            status: 'winning',
+            bidder: {
+              username: bidder.username,
+              firstName: bidder.first_name,
+              lastName: bidder.last_name
+            }
+          },
+          auction: {
+            id: auctionId,
+            currentPrice: amount,
+            totalBids: auction.totalBids + 1,
+            reserveMet: reserveMet,
+            nextMinBid: amount + auction.product.bidIncrement
+          }
+        },
+        message: `Bid placed successfully! You are now the highest bidder at $${amount.toFixed(2)}.`
+      });
+
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
+
+  } catch (error) {
+    console.error('Place bid error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to place bid. Please try again.',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+};
+
 
 
 module.exports = {
@@ -214,5 +415,6 @@ module.exports = {
   getAuctionById,
   getAuctionsByCategory,
   getFeaturedAuctions,
-  getAuctionBids
+  getAuctionBids,
+  placeBid
 };
