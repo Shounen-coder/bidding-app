@@ -11,6 +11,7 @@ const { testConnection } = require('./config/database');
 // Import routes
 const authRoutes = require('./routes/authRoutes');
 const userRoutes = require('./routes/userRoutes');
+const auctionRoutes = require('./routes/auctionRoutes');
 
 const app = express();
 
@@ -61,6 +62,7 @@ app.get('/health', (req, res) => {
 // API routes
 app.use('/api/auth', authRoutes);
 app.use('/api/user', userRoutes);
+app.use('/api/auctions', auctionRoutes);
 
 // 404 handler
 app.use('*', (req, res) => {

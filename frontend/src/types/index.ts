@@ -133,25 +133,18 @@ export interface Bid extends BaseEntity {
 
 // Auction filtering interface
 // Update AuctionFilters to support subcategories
-export interface AuctionFilters {
-  category?: string;
-  subcategory?: string; // New subcategory filter
-  status?: 'scheduled' | 'active' | 'ended';
-  price_min?: number;
-  price_max?: number;
-  condition?: string[];
-  search?: string;
-  sort_by?: 'ending_soon' | 'newest' | 'price_low' | 'price_high' | 'most_bids';
-  page?: number;
-  limit?: number;
-}
+// export interface AuctionFilters {
+//   category?: string;
+//   subcategory?: string; // New subcategory filter
+//   status?: 'scheduled' | 'active' | 'ended';
+//   price_min?: number;
+//   price_max?: number;
+//   condition?: string[];
+//   search?: string;
+//   sort_by?: 'ending_soon' | 'newest' | 'price_low' | 'price_high' | 'most_bids';
+//   page?: number;
+//   limit?: number;
+// }
 
-// Auction search result
-export interface AuctionSearchResult {
-  auctions: Auction[];
-  total_count: number;
-  current_page: number;
-  total_pages: number;
-  filters_applied: AuctionFilters;
-}
+
 
