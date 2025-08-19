@@ -9,11 +9,29 @@ import BidForm from '../../components/auction/BidForm';
 import BidStatusIndicators from '../../components/auction/BidStatusIndicators';
 // import LoadingButton from '../../components/ui/LoadingButton';
 
+//auctionstatus display
+// import AuctionStatusDisplay from '../../components/auction/AuctionStatusDisplay';
+import NotificationToast from '../../components/auction/NotificationToast';
+import { useNotifications } from '../../hooks/useNotifications';
+
+//Product and sellers
+import ProductGallery from '../../components/auction/ProductGallery';
+import ProductDetails from '../../components/auction/ProductDetails';
+import SellerProfile from '../../components/auction/SellerProfile';
+
 const AuctionDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const { user } = useSelector((state: RootState) => state.auth);
   const dispatch = useDispatch<AppDispatch>();
   const { currentAuction, isLoading, error } = useSelector((state: RootState) => state.auctions);
+
+    const {
+    notifications,
+    removeNotification,
+    notifySuccess,
+    notifyWarning,
+    notifyError
+  } = useNotifications();
 
   useEffect(() => {
     if (id) {
@@ -43,82 +61,98 @@ const AuctionDetail: React.FC = () => {
       ? price.toLocaleString('en-US', { style: 'currency', currency: 'USD' })
       : '--';
 
+  // Check if current user is winning bidder
+  const isWinningBidder = Boolean(user && currentAuction?.currentWinnerId === user.id);
   // In your AuctionDetail component, restructure the layout like this:
 return (
   <div className="max-w-7xl mx-auto p-6">
-    {/* Header */}
-    <div className="mb-8">
-      <h1 className="text-4xl font-bold text-gray-900 mb-4">{product.title}</h1>
-      <p className="text-xl text-gray-600 max-w-4xl">{product.description}</p>
-    </div>
+  {/* Header */}
+  <div className="mb-8">
+    <h1 className="text-4xl font-bold text-gray-900 mb-4">{product.title}</h1>
+    <p className="text-xl text-gray-600 max-w-4xl">{product.description}</p>
+  </div>
+  
+  <div className="mb-8">
+    {/* <AuctionStatusDisplay
+      status={status}
+      timeRemaining={timeRemaining ? {...timeRemaining, totalMs:0} : null}
+      isWinningBidder={isWinningBidder}
+      isOutbid={false} // You can implement logic to track if user was outbid
+      endTime={endTime}
+      className="flex justify-center"
+    /> */}
+    <CountdownTimer
+     endTime={endTime}
+    />
+  </div>
 
-    {/* Main Content Grid */}
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-      {/* Left Column - Main Content */}
-      <div className="lg:col-span-2 space-y-8">
-        
-        {/* Product Images and Details */}
-        <div className="bg-white rounded-xl shadow-lg p-6">
-          {/* Your existing product image and details */}
-          <div className="mb-6">
-            {product.images && product.images.length > 0 ? (
-              <img 
-                src={`/images/products/${product.images[0]}`} 
-                alt={product.title} 
-                className="w-full h-96 object-cover rounded-lg shadow-md" 
-              />
-            ) : (
-              <div className="w-full h-96 flex items-center justify-center bg-gray-200 rounded-lg">
-                <span className="text-gray-500 text-lg">No Image Available</span>
-              </div>
-            )}
-          </div>
-
-          {/* Product Details */}
-          <div className="grid grid-cols-2 gap-6 text-sm">
-            <div>
-              <span className="font-semibold text-gray-700">Category:</span>
-              <span className="ml-2 text-gray-600">
-                {category.name}
-                {subcategory ? ` > ${subcategory.name}` : ''}
-              </span>
-            </div>
-            <div>
-              <span className="font-semibold text-gray-700">Condition:</span>
-              <span className="ml-2 text-gray-600 capitalize">{product.condition}</span>
-            </div>
-            <div>
-              <span className="font-semibold text-gray-700">Seller:</span>
-              <span className="ml-2 text-gray-600">
-                {seller.firstName} {seller.lastName} ({seller.username})
-              </span>
-            </div>
-            <div>
-              <span className="font-semibold text-gray-700">Starting Price:</span>
-              <span className="ml-2 text-gray-600">{formatPrice(product.startingPrice)}</span>
-            </div>
-          </div>
+  {/* Main Content Grid */}
+  <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    {/* Left Column - Main Content */}
+    <div className="lg:col-span-2 space-y-8">
+      
+      {/* Enhanced Product Gallery and Details */}
+      <div className="bg-white rounded-xl shadow-lg p-6">
+        {/* Product Gallery */}
+        <div className="mb-8">
+          <ProductGallery
+            images={product.images || []}
+            title={product.title}
+            condition={product.condition}
+          />
         </div>
 
-        {/* Bid Form */}
-        <BidForm
-          auctionId={currentAuction.id}
-          auctionTitle={product.title}
-          currentPrice={currentPrice || product.startingPrice}
-          nextMinBid={nextMinBid || (currentPrice || product.startingPrice) + product.bidIncrement}
-          bidIncrement={product.bidIncrement}
-          isActive={status === 'active'}
-          reservePrice={product.reservePrice}
-          reserveMet={reserveMet}
-          onBidPlaced={(bidData) => {
-            setTimeout(() => {
-  dispatch(fetchAuctionById(currentAuction.id));
-}, 5000);
-
-          }}
+        <ProductDetails
+          product={product}
+          category={category}
+          subcategory={subcategory}
         />
+      </div>
 
-        {/* Live Bid History */}
+      {/* Bid Form */}
+      <BidForm
+        auctionId={currentAuction.id}
+        auctionTitle={product.title}
+        currentPrice={currentPrice || product.startingPrice}
+        nextMinBid={nextMinBid || (currentPrice || product.startingPrice) + product.bidIncrement}
+        bidIncrement={product.bidIncrement}
+        isActive={status === 'active'}
+        reservePrice={product.reservePrice}
+        reserveMet={reserveMet}
+        onBidPlaced={(bidData) => {
+          setTimeout(() => {
+            dispatch(fetchAuctionById(currentAuction.id));
+          }, 5000);
+          notifySuccess(
+            'Bid Placed Successfully!',
+            `You're now the highest bidder at ${formatPrice(bidData.bid.amount)}!`,
+            [
+              {
+                label: 'View Bids',
+                action: () => {
+                  // Scroll to bid history or take other action
+                  document.getElementById('bid-history')?.scrollIntoView({ behavior: 'smooth' });
+                },
+                style: 'primary'
+              }
+            ]
+          );
+        }}
+      />
+
+      {/* Enhanced Live Bid History */}
+      <div id="bid-history" className="bg-white rounded-xl shadow-lg p-6">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-2xl font-bold text-gray-900 flex items-center">
+            <svg className="w-7 h-7 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+            </svg>
+            Bid History
+          </h2>
+          <div className="text-sm text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
+            {totalBids} total bid{totalBids !== 1 ? 's' : ''}
+          </div>
+        </div>
         <LiveBidHistory 
           auctionId={currentAuction.id}
           initialBids={currentAuction.bids || []}
@@ -126,24 +160,60 @@ return (
           auctionStatus={currentAuction.status}
         />
       </div>
+    </div>
 
-      {/* Right Column - Bid Status Panel */}
-      <div className="lg:col-span-1">
-        <div className="sticky top-6">
-          <BidStatusIndicators
-            currentPrice={currentPrice || product.startingPrice}
-            startingPrice={product.startingPrice}
-            nextMinBid={nextMinBid || (currentPrice || product.startingPrice) + product.bidIncrement}
-            reservePrice={product.reservePrice}
-            reserveMet={reserveMet}
-            totalBids={totalBids}
-            timeRemaining={timeRemaining}
-            status={status}
-          />
+    {/* Right Column - Enhanced Bid Status Panel */}
+    <div className="lg:col-span-1">
+      <div className="sticky top-6 space-y-6">
+        {/* Main Bid Status */}
+        <BidStatusIndicators
+          currentPrice={currentPrice || product.startingPrice}
+          startingPrice={product.startingPrice}
+          nextMinBid={nextMinBid || (currentPrice || product.startingPrice) + product.bidIncrement}
+          reservePrice={product.reservePrice}
+          reserveMet={reserveMet}
+          totalBids={totalBids}
+          timeRemaining={timeRemaining}
+          status={status}
+        />
+
+        <SellerProfile seller={seller} />
+
+        {/* Quick Stats Card */}
+        <div className="bg-gradient-to-br from-gray-50 to-blue-50 rounded-xl border border-gray-200 p-6">
+          <h4 className="text-lg font-bold text-gray-900 mb-4">Auction Stats</h4>
+          <div className="space-y-3">
+            <div className="flex justify-between items-center">
+              <span className="text-gray-600">Watchers</span>
+              <span className="font-semibold text-gray-900">12</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-gray-600">Views</span>
+              <span className="font-semibold text-gray-900">247</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-gray-600">Time Left</span>
+              <span className="font-semibold text-blue-600">
+                {timeRemaining ? `${timeRemaining.days}d ${timeRemaining.hours}h` : 'Ended'}
+              </span>
+            </div>
+          </div>
         </div>
       </div>
     </div>
   </div>
+  
+  {/* Notification Toasts */}
+  {notifications.map(notification => (
+    <NotificationToast
+      key={notification.id}
+      notification={notification}
+      onDismiss={removeNotification}
+      position="top-right"
+    />
+  ))}
+</div>
+
 );
 
 };
