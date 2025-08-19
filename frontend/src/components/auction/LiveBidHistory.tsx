@@ -56,7 +56,21 @@ const LiveBidHistory: React.FC<LiveBidHistoryProps> = ({
     const pollBids = async () => {
       try {
         console.log('Polling for new bids...'); // Add this to see if polling works
+        console.log(auctionId)
         const response = await fetch(`/api/auctions/${auctionId}/bids?since=${lastUpdate}`);
+
+        // Check if response is ok
+    if (!response.ok) {
+      console.error(`HTTP error! status: ${response.status}`);
+      return;
+    }
+    
+    // Check if response is JSON
+    const contentType = response.headers.get('content-type');
+    if (!contentType || !contentType.includes('application/json')) {
+      console.error('Response is not JSON:', await response.text());
+      return;
+    }
         const data = await response.json();
 
          console.log('Poll response:', data); // Debug log
