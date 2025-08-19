@@ -19,6 +19,9 @@ import ProductGallery from '../../components/auction/ProductGallery';
 import ProductDetails from '../../components/auction/ProductDetails';
 import SellerProfile from '../../components/auction/SellerProfile';
 
+//watchlist
+import WatchlistButton from '../../components/auction/WatchListButton';
+
 const AuctionDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const { user } = useSelector((state: RootState) => state.auth);
@@ -66,11 +69,36 @@ const AuctionDetail: React.FC = () => {
   // In your AuctionDetail component, restructure the layout like this:
 return (
   <div className="max-w-7xl mx-auto p-6">
-  {/* Header */}
-  <div className="mb-8">
+  {/* Header - Updated with Watchlist on the Right */}
+<div className="mb-8 flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
+  {/* Left side - Title and Description */}
+  <div className="flex-1">
     <h1 className="text-4xl font-bold text-gray-900 mb-4">{product.title}</h1>
     <p className="text-xl text-gray-600 max-w-4xl">{product.description}</p>
   </div>
+
+  {/* Right side - Watchlist and Actions */}
+  <div className="flex items-center space-x-3 lg:mt-2">
+    <WatchlistButton
+      auctionId={currentAuction.id}
+      auctionTitle={product.title}
+      variant="large"
+      onStatusChange={(isWatched) => {
+        const message = isWatched 
+          ? 'Added to your watchlist! You\'ll receive notifications about this auction.'
+          : 'Removed from watchlist.';
+        notifySuccess(isWatched ? 'Added to Watchlist' : 'Removed from Watchlist', message);
+      }}
+    />
+    
+    <button className="p-3 bg-gray-50 text-gray-600 hover:bg-gray-100 rounded-full transition-colors">
+      <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z" />
+      </svg>
+    </button>
+  </div>
+</div>
+
   
   <div className="mb-8">
     {/* <AuctionStatusDisplay
@@ -84,6 +112,7 @@ return (
     <CountdownTimer
      endTime={endTime}
     />
+    
   </div>
 
   {/* Main Content Grid */}
@@ -164,6 +193,7 @@ return (
 
     {/* Right Column - Enhanced Bid Status Panel */}
     <div className="lg:col-span-1">
+      
       <div className="sticky top-6 space-y-6">
         {/* Main Bid Status */}
         <BidStatusIndicators
@@ -176,7 +206,7 @@ return (
           timeRemaining={timeRemaining}
           status={status}
         />
-
+        
         <SellerProfile seller={seller} />
 
         {/* Quick Stats Card */}

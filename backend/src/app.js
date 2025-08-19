@@ -15,6 +15,8 @@ const auctionRoutes = require('./routes/auctionRoutes');
 
 const app = express();
 
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 // Trust proxy if behind reverse proxy (for production)
 app.set('trust proxy', 1);
 

@@ -8,6 +8,8 @@ import { type RootState, type AppDispatch } from '../../store';
 import { fetchAuctions, setFilters, clearError } from '../../store/slices/auctionSlice';
 import AuctionCard from '../../components/auction/AuctionCard';
 import LoadingButton from '../../components/ui/LoadingButton';
+import { useNotifications } from '../../hooks/useNotifications';
+import NotificationToast from '../../components/auction/NotificationToast';
 
 const AuctionListing: React.FC = () => {
   // Redux state
@@ -16,6 +18,9 @@ const AuctionListing: React.FC = () => {
   
   // URL search params
   const [searchParams, setSearchParams] = useSearchParams();
+  
+  // ADD: Notifications hook for watchlist feedback
+  const { notifications, removeNotification } = useNotifications();
   
   // Local component state
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
@@ -125,9 +130,9 @@ const AuctionListing: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
+      {/* Header - UPDATED: Wider container */}
       <div className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="max-w-[1400px] mx-auto px-6 sm:px-8 lg:px-12 py-8"> {/* WIDER CONTAINER */}
           <div className="text-center">
             <h1 className="text-4xl font-bold text-gray-900 mb-4">
               Discover Amazing Auctions
@@ -139,23 +144,24 @@ const AuctionListing: React.FC = () => {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex flex-col lg:flex-row gap-8">
-          {/* Enhanced Sidebar Filters */}
-          <div className="lg:w-1/4">
-            <div className="bg-white rounded-lg shadow-md p-6 sticky top-4">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-gray-900">Filters</h3>
+      <div className="max-w-[1400px] mx-auto px-6 sm:px-8 lg:px-12 py-8"> {/* WIDER CONTAINER */}
+        <div className="flex flex-col xl:flex-row gap-10"> {/* CHANGED: lg to xl, increased gap */}
+          
+          {/* Enhanced Sidebar Filters - UPDATED: Wider and modern styling */}
+          <div className="xl:w-1/4 min-w-[340px]"> {/* WIDER SIDEBAR */}
+            <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-8 sticky top-4"> {/* ENHANCED STYLING */}
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-xl font-bold text-gray-900">Filters</h3> {/* LARGER HEADING */}
                 {activeFiltersCount > 0 && (
-                  <span className="text-sm text-gray-500">
-                    ({activeFiltersCount} active)
+                  <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-[#2B5263] text-white">
+                    {activeFiltersCount} active
                   </span>
                 )}
               </div>
 
-              {/* Search */}
-              <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+              {/* Search - UPDATED: Modern styling */}
+              <div className="mb-8">
+                <label className="block text-sm font-semibold text-gray-700 mb-3">
                   Search
                 </label>
                 <input
@@ -163,19 +169,19 @@ const AuctionListing: React.FC = () => {
                   placeholder="Search auctions..."
                   value={filters.search || ''}
                   onChange={(e) => handleFilterChange('search', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#2B5263] focus:border-[#2B5263] transition-all duration-200"
                 />
               </div>
 
-              {/* Category Filter */}
-              <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+              {/* Category Filter - UPDATED: Modern styling */}
+              <div className="mb-8">
+                <label className="block text-sm font-semibold text-gray-700 mb-3">
                   Category
                 </label>
                 <select
                   value={filters.category || ''}
                   onChange={(e) => handleFilterChange('category', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#2B5263] focus:border-[#2B5263] transition-all duration-200"
                 >
                   <option value="">All Categories</option>
                   {sampleCategories.map(category => (
@@ -186,16 +192,16 @@ const AuctionListing: React.FC = () => {
                 </select>
               </div>
 
-              {/* Subcategory Filter */}
+              {/* Subcategory Filter - UPDATED: Modern styling */}
               {availableSubcategories.length > 0 && (
-                <div className="mb-6">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                <div className="mb-8">
+                  <label className="block text-sm font-semibold text-gray-700 mb-3">
                     Subcategory
                   </label>
                   <select
                     value={filters.subcategory || ''}
                     onChange={(e) => handleFilterChange('subcategory', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#2B5263] focus:border-[#2B5263] transition-all duration-200"
                   >
                     <option value="">All {selectedCategory?.name}</option>
                     {availableSubcategories.map(subcategory => (
@@ -207,15 +213,15 @@ const AuctionListing: React.FC = () => {
                 </div>
               )}
 
-              {/* Status Filter */}
-              <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+              {/* Status Filter - UPDATED: Modern styling */}
+              <div className="mb-8">
+                <label className="block text-sm font-semibold text-gray-700 mb-3">
                   Status
                 </label>
                 <select
                   value={filters.status || 'active'}
                   onChange={(e) => handleFilterChange('status', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#2B5263] focus:border-[#2B5263] transition-all duration-200"
                 >
                   <option value="active">Active Auctions</option>
                   <option value="scheduled">Upcoming</option>
@@ -223,84 +229,84 @@ const AuctionListing: React.FC = () => {
                 </select>
               </div>
 
-              {/* Price Range */}
-              <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+              {/* Price Range - UPDATED: Modern styling and better spacing */}
+              <div className="mb-8">
+                <label className="block text-sm font-semibold text-gray-700 mb-3">
                   Price Range
                 </label>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 gap-3">
                   <input
                     type="number"
                     placeholder="Min"
-                    value={filters.minPrice || ''} // CHANGED: price_min → minPrice
-                    onChange={(e) => handleFilterChange('minPrice', e.target.value ? parseFloat(e.target.value) : undefined)} // CHANGED: price_min → minPrice
-                    className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    value={filters.minPrice || ''}
+                    onChange={(e) => handleFilterChange('minPrice', e.target.value ? parseFloat(e.target.value) : undefined)}
+                    className="px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#2B5263] focus:border-[#2B5263] transition-all duration-200"
                   />
                   <input
                     type="number"
                     placeholder="Max"
-                    value={filters.maxPrice || ''} // CHANGED: price_max → maxPrice
-                    onChange={(e) => handleFilterChange('maxPrice', e.target.value ? parseFloat(e.target.value) : undefined)} // CHANGED: price_max → maxPrice
-                    className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    value={filters.maxPrice || ''}
+                    onChange={(e) => handleFilterChange('maxPrice', e.target.value ? parseFloat(e.target.value) : undefined)}
+                    className="px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#2B5263] focus:border-[#2B5263] transition-all duration-200"
                   />
                 </div>
               </div>
 
-              {/* Active Filters Display */}
+              {/* Active Filters Display - UPDATED: Modern badges */}
               {activeFiltersCount > 0 && (
-                <div className="mb-6">
-                  <h4 className="text-sm font-medium text-gray-700 mb-2">Active Filters:</h4>
+                <div className="mb-8">
+                  <h4 className="text-sm font-semibold text-gray-700 mb-3">Active Filters:</h4>
                   <div className="flex flex-wrap gap-2">
                     {filters.category && (
-                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                      <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-800 border border-blue-200">
                         {selectedCategory?.name}
                         <button
                           onClick={() => handleFilterChange('category', '')}
-                          className="ml-1 text-blue-600 hover:text-blue-800"
+                          className="ml-2 text-blue-600 hover:text-blue-800 transition-colors"
                         >
                           ×
                         </button>
                       </span>
                     )}
                     {filters.subcategory && (
-                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                      <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800 border border-green-200">
                         {availableSubcategories.find(sub => sub.slug === filters.subcategory)?.name}
                         <button
                           onClick={() => handleFilterChange('subcategory', '')}
-                          className="ml-1 text-green-600 hover:text-green-800"
+                          className="ml-2 text-green-600 hover:text-green-800 transition-colors"
                         >
                           ×
                         </button>
                       </span>
                     )}
                     {filters.search && (
-                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                      <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-purple-100 text-purple-800 border border-purple-200">
                         Search: "{filters.search}"
                         <button
                           onClick={() => handleFilterChange('search', '')}
-                          className="ml-1 text-purple-600 hover:text-purple-800"
+                          className="ml-2 text-purple-600 hover:text-purple-800 transition-colors"
                         >
                           ×
                         </button>
                       </span>
                     )}
-                    {filters.minPrice && ( // CHANGED: price_min → minPrice
-                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                    {filters.minPrice && (
+                      <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-800 border border-yellow-200">
                         Min: ${filters.minPrice}
                         <button
-                          onClick={() => handleFilterChange('minPrice', undefined)} // CHANGED: price_min → minPrice
-                          className="ml-1 text-yellow-600 hover:text-yellow-800"
+                          onClick={() => handleFilterChange('minPrice', undefined)}
+                          className="ml-2 text-yellow-600 hover:text-yellow-800 transition-colors"
                         >
                           ×
                         </button>
                       </span>
                     )}
-                    {filters.maxPrice && ( // CHANGED: price_max → maxPrice
-                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                    {filters.maxPrice && (
+                      <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-800 border border-yellow-200">
                         Max: ${filters.maxPrice}
                         <button
-                          onClick={() => handleFilterChange('maxPrice', undefined)} // CHANGED: price_max → maxPrice
-                          className="ml-1 text-yellow-600 hover:text-yellow-800"
+                          onClick={() => handleFilterChange('maxPrice', undefined)}
+                          className="ml-2 text-yellow-600 hover:text-yellow-800 transition-colors"
                         >
                           ×
                         </button>
@@ -310,34 +316,34 @@ const AuctionListing: React.FC = () => {
                 </div>
               )}
 
-              {/* Clear Filters */}
+              {/* Clear Filters - UPDATED: Use brand color */}
               <button
                 onClick={clearAllFilters}
-                className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 py-2 px-4 rounded-lg text-sm font-medium transition-colors duration-200"
+                className="w-full bg-[#2B5263] hover:bg-[#1e3c47] text-white py-3 px-6 rounded-xl font-semibold transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-xl cursor-pointer"
               >
                 Clear All Filters
               </button>
             </div>
           </div>
 
-          {/* Main Content */}
-          <div className="lg:w-3/4">
-            {/* Sort and Results Count */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
+          {/* Main Content - UPDATED: Wider */}
+          <div className="xl:w-3/4">
+            {/* Sort and Results Count - UPDATED: Modern card with better spacing */}
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 bg-white rounded-xl p-6 shadow-lg border border-gray-100">
               <div className="mb-4 sm:mb-0">
-                <p className="text-gray-600">
-                  Showing {auctions.length} of {pagination.total} auctions
+                <p className="text-lg font-medium text-gray-700"> {/* ENHANCED TYPOGRAPHY */}
+                  Showing <span className="font-bold text-[#2B5263]">{auctions.length}</span> of <span className="font-bold">{pagination.total}</span> auctions
                   {filters.category && ` in ${selectedCategory?.name}`}
                   {filters.subcategory && ` > ${availableSubcategories.find(sub => sub.slug === filters.subcategory)?.name}`}
                 </p>
               </div>
               
               <div className="flex items-center space-x-4">
-                <label className="text-sm font-medium text-gray-700">Sort by:</label>
+                <label className="text-sm font-semibold text-gray-700">Sort by:</label>
                 <select
-                  value={filters.sortBy || 'ending_soon'} // CHANGED: sort_by → sortBy
-                  onChange={(e) => handleFilterChange('sortBy', e.target.value)} // CHANGED: sort_by → sortBy
-                  className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  value={filters.sortBy || 'ending_soon'}
+                  onChange={(e) => handleFilterChange('sortBy', e.target.value)}
+                  className="px-4 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#2B5263] focus:border-[#2B5263] transition-all duration-200"
                 >
                   <option value="ending_soon">Ending Soon</option>
                   <option value="newest">Newest First</option>
@@ -348,27 +354,27 @@ const AuctionListing: React.FC = () => {
               </div>
             </div>
 
-            {/* Error Message */}
+            {/* Error Message - UPDATED: Modern styling */}
             {error && (
-              <div className="bg-red-50 border border-red-200 rounded-md p-4 mb-6">
+              <div className="bg-red-50 border-2 border-red-200 rounded-xl p-6 mb-8">
                 <div className="flex">
-                  <svg className="w-5 h-5 text-red-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                  <svg className="w-6 h-6 text-red-500 mr-3" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
                   </svg>
-                  <p className="text-sm text-red-700">{error}</p>
+                  <p className="text-red-700 font-medium">{error}</p>
                 </div>
               </div>
             )}
 
-            {/* Loading State */}
+            {/* Loading State - UPDATED: Better grid spacing */}
             {isLoading && auctions.length === 0 && (
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-8"> {/* IMPROVED GRID */}
                 {[...Array(6)].map((_, index) => (
-                  <div key={index} className="bg-white rounded-lg shadow-md overflow-hidden animate-pulse">
-                    <div className="h-48 bg-gray-300"></div>
-                    <div className="p-4">
-                      <div className="h-4 bg-gray-300 rounded w-3/4 mb-2"></div>
-                      <div className="h-6 bg-gray-300 rounded w-full mb-2"></div>
+                  <div key={index} className="bg-white rounded-2xl shadow-lg overflow-hidden animate-pulse border border-gray-100">
+                    <div className="h-56 bg-gray-300"></div>
+                    <div className="p-6">
+                      <div className="h-4 bg-gray-300 rounded w-3/4 mb-3"></div>
+                      <div className="h-6 bg-gray-300 rounded w-full mb-3"></div>
                       <div className="h-4 bg-gray-300 rounded w-1/2"></div>
                     </div>
                   </div>
@@ -376,44 +382,45 @@ const AuctionListing: React.FC = () => {
               </div>
             )}
 
-            {/* Auction Grid */}
+            {/* Auction Grid - UPDATED: Better spacing and responsive grid */}
             {(!isLoading || auctions.length > 0) && (
               auctions.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-8"> {/* IMPROVED GRID WITH BETTER SPACING */}
                   {auctions.map((auction, index) => (
                     <AuctionCard
                       key={auction.id}
                       auction={auction}
                       variant={index < 2 ? 'featured' : 'default'}
+                      className="w-full"
                     />
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-12">
-                  <svg className="w-24 h-24 mx-auto text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="text-center py-16 bg-white rounded-2xl shadow-lg border border-gray-100"> {/* ENHANCED EMPTY STATE */}
+                  <svg className="w-32 h-32 mx-auto text-gray-300 mb-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                   </svg>
-                  <h3 className="text-xl font-medium text-gray-900 mb-2">No auctions found</h3>
-                  <p className="text-gray-600 mb-4">
-                    Try adjusting your filters or search terms
+                  <h3 className="text-2xl font-bold text-gray-900 mb-3">No auctions found</h3>
+                  <p className="text-gray-600 mb-6 max-w-md mx-auto">
+                    We couldn't find any auctions matching your criteria. Try adjusting your filters or search terms.
                   </p>
                   <button
                     onClick={clearAllFilters}
-                    className="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg font-medium transition-colors duration-200"
+                    className="bg-[#2B5263] hover:bg-[#1e3c47] text-white py-3 px-8 rounded-xl font-semibold transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-xl cursor-pointer"
                   >
-                    Clear Filters
+                    Clear All Filters
                   </button>
                 </div>
               )
             )}
 
-            {/* Load More Button */}
+            {/* Load More Button - UPDATED: Brand color and modern styling */}
             {!isLoading && auctions.length > 0 && pagination.hasMore && (
-              <div className="text-center mt-8">
+              <div className="text-center mt-12">
                 <LoadingButton
                   onClick={handleLoadMore}
                   loading={isLoading}
-                  className="bg-gray-100 hover:bg-gray-200 text-gray-700 py-3 px-6 rounded-lg font-medium transition-colors duration-200"
+                  className="bg-[#2B5263] hover:bg-[#1e3c47] text-white py-4 px-8 rounded-xl font-semibold transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-xl"
                 >
                   {isLoading ? 'Loading More...' : 'Load More Auctions'}
                 </LoadingButton>
@@ -422,6 +429,16 @@ const AuctionListing: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* ADD: Notification Toasts */}
+      {notifications.map(notification => (
+        <NotificationToast
+          key={notification.id}
+          notification={notification}
+          onDismiss={removeNotification}
+          position="top-right"
+        />
+      ))}
     </div>
   );
 };

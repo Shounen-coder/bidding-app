@@ -1,7 +1,8 @@
 const Auction = require('../../models/Auction');
 const Product = require('../../models/Product');
 const Bid = require("../../models/Bid");
-const {pool} = require("../../config/database")
+const {pool} = require("../../config/database");
+const Watchlist = require('../../models/Watchlist');
 // Get all auctions with filtering, sorting, and pagination
 const getAllAuctions = async (req, res) => {
   try {
@@ -408,6 +409,169 @@ const placeBid = async (req, res) => {
   }
 };
 
+// Add auction to watchlist
+const addToWatchlist = async (req, res) => {
+  try {
+    console.log('Adding to watchlist:', req.params.id); // DEBUG LOG
+    
+    const auctionId = parseInt(req.params.id, 10);
+    const userId = req.user?.id || 1;
+
+    if (!auctionId || isNaN(auctionId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid auction ID'
+      });
+    }
+
+    // Check if auction exists
+    const auction = await Auction.findByIdWithDetails(auctionId);
+    if (!auction) {
+      return res.status(404).json({
+        success: false,
+        message: 'Auction not found'
+      });
+    }
+
+    console.log(`Adding auction ${auctionId} to watchlist for user ${userId}`); // DEBUG LOG
+
+    const watchlistItem = await Watchlist.addToWatchlist(userId, auctionId);
+    
+    if (watchlistItem) {
+      console.log('Successfully added to watchlist'); // DEBUG LOG
+      return res.status(201).json({
+        success: true,
+        data: { watchlistItem },
+        message: 'Auction added to watchlist successfully'
+      });
+    } else {
+      console.log('Already in watchlist'); // DEBUG LOG
+      return res.status(200).json({
+        success: true,
+        message: 'Auction is already in your watchlist'
+      });
+    }
+
+  } catch (error) {
+    console.error('Add to watchlist error:', error);
+    console.error('Error stack:', error.stack); // DETAILED ERROR LOG
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to add auction to watchlist',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+};
+
+
+// Remove auction from watchlist
+const removeFromWatchlist = async (req, res) => {
+  try {
+    const auctionId = parseInt(req.params.id, 10);
+    const userId = req.user?.id || 1;
+
+    if (!auctionId || isNaN(auctionId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid auction ID'
+      });
+    }
+
+    const removed = await Watchlist.removeFromWatchlist(userId, auctionId);
+    
+    if (removed) {
+      res.json({
+        success: true,
+        message: 'Auction removed from watchlist successfully'
+      });
+    } else {
+      res.status(404).json({
+        success: false,
+        message: 'Auction not found in watchlist'
+      });
+    }
+
+  } catch (error) {
+    console.error('Remove from watchlist error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to remove auction from watchlist'
+    });
+  }
+};
+
+// Check if auction is in watchlist
+const checkWatchlistStatus = async (req, res) => {
+  try {
+    console.log('Checking watchlist status for auction:', req.params.id); // DEBUG LOG
+    
+    const auctionId = parseInt(req.params.id, 10);
+    const userId = req.user?.id || 1;
+
+    if (!auctionId || isNaN(auctionId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid auction ID'
+      });
+    }
+
+    console.log(`Checking watchlist for user ${userId}, auction ${auctionId}`); // DEBUG LOG
+    
+    const isInWatchlist = await Watchlist.isInWatchlist(userId, auctionId);
+    
+    console.log(`Watchlist status: ${isInWatchlist}`); // DEBUG LOG
+    
+    res.json({
+      success: true,
+      data: { isInWatchlist }
+    });
+
+  } catch (error) {
+    console.error('Check watchlist status error:', error);
+    console.error('Error stack:', error.stack); // DETAILED ERROR LOG
+    res.status(500).json({
+      success: false,
+      message: 'Failed to check watchlist status',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+};
+
+
+// Get user's watchlist
+const getUserWatchlist = async (req, res) => {
+  try {
+    const userId = req.user?.id || 1;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const offset = (page - 1) * limit;
+
+    const [watchlist, totalCount] = await Promise.all([
+      Watchlist.getUserWatchlist(userId, limit, offset),
+      Watchlist.getWatchlistCount(userId)
+    ]);
+
+    res.json({
+      success: true,
+      data: {
+        watchlist,
+        pagination: {
+          current_page: page,
+          total_count: totalCount,
+          total_pages: Math.ceil(totalCount / limit),
+          has_more: offset + watchlist.length < totalCount
+        }
+      }
+    });
+
+  } catch (error) {
+    console.error('Get user watchlist error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch watchlist'
+    });
+  }
+};
 
 
 module.exports = {
@@ -416,5 +580,11 @@ module.exports = {
   getAuctionsByCategory,
   getFeaturedAuctions,
   getAuctionBids,
-  placeBid
+  placeBid,
+
+  //watchlist
+  addToWatchlist,
+  removeFromWatchlist,
+  checkWatchlistStatus,
+  getUserWatchlist
 };
