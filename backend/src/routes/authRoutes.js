@@ -1,39 +1,22 @@
-// 
-
 const express = require('express');
-const authController = require('../controllers/auth/authController');
-const { authenticateToken } = require('../middleware/auth/authMiddleware');
-const { validate } = require('../middleware/validation/validationMiddleware');
-
 const router = express.Router();
+const authController = require('../controllers/auth/authController');
+const { authenticateToken} = require('../middleware/auth/authMiddleware');
+const { authRateLimit } = require('../middleware/auth/rateLimitMiddleware');
 
-// Public routes - Rate limiting removed for development
-router.post('/register', 
-  validate('register'), 
-  authController.register
-);
-
-router.post('/login', 
-  validate('login'), 
-  authController.login
-);
-
-router.post('/logout', 
-  authController.logout
-);
-
-router.post('/refresh-token', 
-  authController.refreshToken
-);
-
-router.get('/verify-email/:token', 
-  authController.verifyEmail
-);
+// Public routes with rate limiting
+router.post('/register', authRateLimit, authController.register);
+router.post('/login', authRateLimit, authController.login);
+router.post('/refresh', authController.refreshToken);
+router.post('/logout', authController.logout);
+// router.get('/verify-email/:token', strictRateLimit, authController.verifyEmail);
 
 // Protected routes
-router.get('/me', 
-  authenticateToken, 
-  authController.getCurrentUser
-);
+router.get('/user', authenticateToken, authController.getCurrentUser);
+router.post('/logout-all', authenticateToken, authController.logoutAll);
+
 
 module.exports = router;
+
+
+// const { validate } = require('../middleware/validation/validationMiddleware');

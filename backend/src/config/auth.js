@@ -2,7 +2,7 @@ require('dotenv').config();
 
 const authConfig = {
   jwt: {
-    secret: process.env.JWT_SECRET,
+    secret: process.env.JWT_ACCESS_SECRET || process.env.JWT_SECRET,
     expiresIn: process.env.JWT_EXPIRES_IN || '7d',
     refreshSecret: process.env.JWT_REFRESH_SECRET,
     refreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '30d',
@@ -21,7 +21,7 @@ const authConfig = {
 };
 
 // Validate required environment variables
-const requiredEnvVars = ['JWT_SECRET', 'DB_NAME', 'DB_USER', 'DB_PASSWORD'];
+const requiredEnvVars = ['JWT_ACCESS_SECRET','JWT_REFRESH_SECRET', 'DB_NAME', 'DB_USER', 'DB_PASSWORD'];
 const missingEnvVars = requiredEnvVars.filter(envVar => !process.env[envVar]);
 
 if (missingEnvVars.length > 0) {

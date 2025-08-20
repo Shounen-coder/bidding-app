@@ -12,11 +12,21 @@ const { testConnection } = require('./config/database');
 const authRoutes = require('./routes/authRoutes');
 const userRoutes = require('./routes/userRoutes');
 const auctionRoutes = require('./routes/auctionRoutes');
+const adminRoutes = require('./routes/adminRoutes');
+
+
+//import middlewares
+const { generalRateLimit } = require('./middleware/auth/rateLimitMiddleware');
+
 
 const app = express();
 
+
+// Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+
 // Trust proxy if behind reverse proxy (for production)
 app.set('trust proxy', 1);
 
@@ -34,12 +44,20 @@ app.use(helmet({
 }));
 
 // CORS configuration
+// app.use(cors({
+//   origin: authConfig.cors.origin,
+//   credentials: authConfig.cors.credentials,
+//   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+//   allowedHeaders: ['Content-Type', 'Authorization'],
+// }));
+
 app.use(cors({
-  origin: authConfig.cors.origin,
-  credentials: authConfig.cors.credentials,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  credentials: true // Allow credentials (cookies) to be sent
 }));
+
+// Trust proxy for accurate IP addresses (if behind reverse proxy)
+app.set('trust proxy', 1);
 
 // Body parsing middleware
 app.use(express.json({ limit: '10mb' }));
@@ -61,9 +79,17 @@ app.get('/health', (req, res) => {
   });
 });
 
+// Import middleware
+const { tokenStatusMiddleware } = require('./middleware/auth/tokenRefreshMiddleware');
+
+
+app.use('/api', generalRateLimit);
+app.use('/api', tokenStatusMiddleware);
+
 // API routes
+app.use('/api/admin', adminRoutes);
 app.use('/api/auth', authRoutes);
-app.use('/api/user', userRoutes);
+app.use('/api/users', userRoutes);
 app.use('/api/auctions', auctionRoutes);
 
 // 404 handler
