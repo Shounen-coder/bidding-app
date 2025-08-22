@@ -2,11 +2,13 @@ import { configureStore } from '@reduxjs/toolkit';
 import authSlice from './slices/authSlice';
 // import categorySlice from './slices/categorySlice';
 import auctionSlice from './slices/auctionSlice';
+import profileSlice from './slices/profileSlice';
 
 export const store = configureStore({
   reducer: {
     auth: authSlice,
     // categories: categorySlice,
+    profile: profileSlice,
     auctions: auctionSlice,
   },
   middleware: (getDefaultMiddleware) =>

@@ -2,6 +2,19 @@ import { createSlice, createAsyncThunk, type PayloadAction } from '@reduxjs/tool
 import { authService } from '../../services/authService';
 
 // Define types for our auth state
+// export interface User {
+//   id: number;
+//   username: string;
+//   email: string;
+//   firstName: string;
+//   lastName: string;
+//   phone?: string;
+//   profileImage?: string;
+//   isVerified: boolean;
+//   isAdmin: boolean;
+//   createdAt: string;
+//   updatedAt: string;
+// }
 export interface User {
   id: number;
   username: string;
@@ -14,7 +27,35 @@ export interface User {
   isAdmin: boolean;
   createdAt: string;
   updatedAt: string;
+  
+  // Extended profile fields
+   profileCompletionScore?: number;
+  dateOfBirth?: string;
+  bio?: string;
+  location?: string;
+  website?: string;
+  address?: string;
+  zipCode?: string;
+  city?: string;
+  country?: string;
+  
+  // Notification settings
+  notificationSettings?: {
+    emailNotifications?: boolean;
+    bidNotifications?: boolean;
+    auctionUpdates?: boolean;
+    marketingEmails?: boolean;
+    twoFactorEnabled?: boolean;
+  };
+  
+  // Individual notification properties for backward compatibility
+  emailNotifications?: boolean;
+  bidNotifications?: boolean;
+  auctionUpdates?: boolean;
+  marketingEmails?: boolean;
+  twoFactorEnabled?: boolean;
 }
+
 
 export interface AuthState {
   user: User | null;
@@ -22,6 +63,7 @@ export interface AuthState {
   isLoading: boolean;
   error: string | null;
   successMessage: string | null;
+  accessToken: string | null;
 }
 
 export interface LoginCredentials {
@@ -54,6 +96,30 @@ export interface ApiError {
   }>;
 }
 
+// Refresh access token
+export const refreshAccessToken = createAsyncThunk<
+  { accessToken: string },
+  void,
+  { rejectValue: ApiError }
+>(
+  'auth/refreshToken',
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await fetch('/api/auth/refresh', {
+        method: 'POST',
+        credentials: 'include'
+      });
+      const data = await response.json();
+      if (!data.success) throw new Error(data.message);
+      localStorage.setItem('accessToken', data.data.accessToken);
+      return { accessToken: data.data.accessToken };
+    } catch (error: any) {
+      localStorage.removeItem('accessToken');
+      return rejectWithValue({ success: false, message: error.message });
+    }
+  }
+);
+
 // Async thunks for API calls
 export const loginUser = createAsyncThunk<
   AuthResponse,
@@ -64,6 +130,9 @@ export const loginUser = createAsyncThunk<
   async (credentials, { rejectWithValue }) => {
     try {
       const response = await authService.login(credentials);
+      localStorage.setItem('accessToken', response.accessToken); // ADD THIS LINE
+
+
       return response;
     } catch (error) {
       return rejectWithValue(error as ApiError);
@@ -80,6 +149,9 @@ export const registerUser = createAsyncThunk<
   async (userData, { rejectWithValue }) => {
     try {
       const response = await authService.register(userData);
+      localStorage.setItem('accessToken', response.accessToken); // ADD THIS LINE
+
+
       return response;
     } catch (error) {
       return rejectWithValue(error as ApiError);
@@ -96,8 +168,10 @@ export const logoutUser = createAsyncThunk<
   async (_, { rejectWithValue }) => {
     try {
       await authService.logout();
+      localStorage.removeItem('accessToken'); // ADD THIS LINE
       return true;
     } catch (error) {
+      localStorage.removeItem('accessToken'); // ADD THIS LINE
       return rejectWithValue(error as ApiError);
     }
   }
@@ -142,6 +216,7 @@ const initialState: AuthState = {
   isLoading: false,
   error: null,
   successMessage: null,
+  accessToken: localStorage.getItem('accessToken'), // ADD THIS LINE
 };
 
 const authSlice = createSlice({
@@ -164,10 +239,29 @@ const authSlice = createSlice({
       state.error = null;
       state.successMessage = null;
       state.isLoading = false;
+      state.accessToken = null; // ADD THIS LINE
+      localStorage.removeItem('accessToken'); // ADD THIS LINE
     },
+
+    setAccessToken: (state, action: PayloadAction<string>) => {
+      state.accessToken = action.payload;
+      localStorage.setItem('accessToken', action.payload);
+    }
   },
   extraReducers: (builder) => {
     builder
+
+    // ADD these new cases for refresh token
+      .addCase(refreshAccessToken.fulfilled, (state, action) => {
+        state.accessToken = action.payload.accessToken;
+      })
+      .addCase(refreshAccessToken.rejected, (state) => {
+        state.user = null;
+        state.isAuthenticated = false;
+        state.accessToken = null;
+        localStorage.removeItem('accessToken');
+      })
+
       // Login
       .addCase(loginUser.pending, (state) => {
         state.isLoading = true;
@@ -177,6 +271,7 @@ const authSlice = createSlice({
         state.isLoading = false;
         state.isAuthenticated = true;
         state.user = action.payload.user;
+         state.accessToken = action.payload.accessToken; // ADD THIS LINE
         state.successMessage = 'Login successful!';
       })
       .addCase(loginUser.rejected, (state, action) => {
@@ -195,6 +290,7 @@ const authSlice = createSlice({
         state.isLoading = false;
         state.isAuthenticated = true;
         state.user = action.payload.user;
+         state.accessToken = action.payload.accessToken; // ADD THIS LINE
         state.successMessage = 'Registration successful!';
       })
       .addCase(registerUser.rejected, (state, action) => {
@@ -248,8 +344,10 @@ const authSlice = createSlice({
         state.isLoading = false;
         state.error = action.payload?.message || 'Profile update failed';
       });
+
+      
   },
 });
 
-export const { clearError, clearSuccessMessage, setUser, clearAuthState } = authSlice.actions;
+export const { clearError, clearSuccessMessage, setUser, clearAuthState, setAccessToken } = authSlice.actions;
 export default authSlice.reducer;

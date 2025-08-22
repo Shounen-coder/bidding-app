@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import { type Resolver } from "react-hook-form";
@@ -12,8 +12,9 @@ import { type RootState, type AppDispatch } from '../../store';
 import { type LoginCredentials } from '../../types';
 
 const Login: React.FC = () => {
-  const dispatch = useDispatch<AppDispatch>();
+  const dispatch = useDispatch<AppDispatch>(); // Fixed: Proper typing
   const navigate = useNavigate();
+  const location = useLocation();
   const { isLoading, error, successMessage, isAuthenticated } = useSelector((state: RootState) => state.auth);
 
   // React Hook Form setup
@@ -23,15 +24,16 @@ const Login: React.FC = () => {
     formState: { errors, isValid }
   } = useForm<LoginCredentials>({
     resolver: yupResolver(loginSchema) as Resolver<LoginCredentials>,
-    mode: 'onChange' // Validate as user types
+    mode: 'onChange'
   });
 
-  // Redirect if already authenticated
+  // Fixed: Redirect to dashboard after authentication
   useEffect(() => {
     if (isAuthenticated) {
-      navigate('/');
+      const from = (location.state as any)?.from?.pathname || '/';
+      navigate(from, { replace: true });
     }
-  }, [isAuthenticated, navigate]);
+  }, [isAuthenticated, navigate, location]);
 
   // Clear messages on unmount
   useEffect(() => {
@@ -41,44 +43,39 @@ const Login: React.FC = () => {
     };
   }, [dispatch]);
 
-  // Form submission handler
+  // Fixed: Form submission handler with proper async handling
   const onSubmit = async (data: LoginCredentials) => {
     try {
       await dispatch(loginUser(data)).unwrap();
       // Navigation will be handled by useEffect when isAuthenticated changes
     } catch (error) {
-      // Error is handled by Redux
       console.error('Login failed:', error);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-md w-full space-y-8">
         {/* Header */}
-        <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
-            <span className="text-white font-bold text-2xl">B</span>
+        <div className="text-center">
+          <div className="mx-auto h-12 w-12 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 flex items-center justify-center shadow-lg">
+            <span className="text-white font-bold text-xl">B</span>
           </div>
-          <h2 className="text-3xl font-bold text-gray-900">
-            Welcome back to BIDDEX
-          </h2>
-          <p className="mt-2 text-gray-600">
-            Sign in to your account to continue bidding
-          </p>
+          <h2 className="mt-6 text-3xl font-bold text-gray-900">Welcome back to BIDDEX</h2>
+          <p className="mt-2 text-sm text-gray-600">Sign in to your account to continue bidding</p>
         </div>
 
         {/* Login Form */}
-        <div className="bg-white rounded-lg shadow-md p-8">
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+        <div className="bg-white rounded-2xl shadow-xl p-8">
+          <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
             {/* Email Field */}
             <FormField
-              label="Email Address"
+              label="Email"
               name="email"
               type="email"
-              placeholder="Enter your email"
               register={register}
               error={errors.email}
+              placeholder="Enter your email"
               required
             />
 
@@ -87,21 +84,16 @@ const Login: React.FC = () => {
               label="Password"
               name="password"
               type="password"
-              placeholder="Enter your password"
               register={register}
               error={errors.password}
+              placeholder="Enter your password"
               required
             />
 
             {/* Backend Error Display */}
             {error && (
-              <div className="bg-red-50 border border-red-200 rounded-md p-4">
-                <div className="flex">
-                  <svg className="w-5 h-5 text-red-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                  </svg>
-                  <p className="text-sm text-red-700">{error}</p>
-                </div>
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+                {error}
               </div>
             )}
 
@@ -110,43 +102,34 @@ const Login: React.FC = () => {
               type="submit"
               loading={isLoading}
               disabled={!isValid}
-              variant="primary"
-              className="w-full"
+              className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 px-4 rounded-lg font-semibold hover:from-blue-700 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
             >
               {isLoading ? 'Signing in...' : 'Sign In'}
             </LoadingButton>
-          </form>
 
-          {/* Additional Options */}
-          <div className="mt-6">
-            <div className="text-center">
-              <Link 
-                to="/forgot-password" 
-                className="text-sm text-blue-600 hover:text-blue-500"
-              >
+            {/* Additional Options */}
+            <div className="flex items-center justify-between">
+              <Link to="/forgot-password" className="text-sm text-blue-600 hover:text-blue-500">
                 Forgot your password?
               </Link>
             </div>
 
-            <div className="mt-6 text-center">
+            <div className="text-center">
               <span className="text-sm text-gray-600">
                 Don't have an account?{' '}
-                <Link 
-                  to="/register" 
-                  className="font-medium text-blue-600 hover:text-blue-500"
-                >
+                <Link to="/register" className="font-medium text-blue-600 hover:text-blue-500">
                   Sign up for free
                 </Link>
               </span>
             </div>
-          </div>
-        </div>
 
-        {/* Demo Credentials - Updated for real backend */}
-        <div className="mt-4 bg-blue-50 border border-blue-200 rounded-md p-4">
-          <p className="text-sm text-blue-800">
-            <strong>Tip:</strong> Create a new account or use any registered email to test login
-          </p>
+            {/* Demo Credentials */}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <p className="text-sm text-blue-700">
+                <strong>Tip:</strong> Create a new account or use any registered email to test login
+              </p>
+            </div>
+          </form>
         </div>
       </div>
     </div>

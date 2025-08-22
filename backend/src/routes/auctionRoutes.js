@@ -2,6 +2,8 @@ const express = require('express');
 const router = express.Router();
 const auctionController = require('../controllers/auction/auctionController');
 const { authenticateToken, optionalAuth, requirePermission } = require('../middleware/auth/authMiddleware');
+const { statusCheckRateLimit } = require('../middleware/auth/rateLimitMiddleware');
+// const {statusCheckRateLimt} = require('../middleware/auth/rateLimitMiddleware');
 
 // Public routes (can be viewed without authentication)
 router.get('/', optionalAuth, auctionController.getAllAuctions);
@@ -18,7 +20,7 @@ router.post('/:id/bids', authenticateToken, requirePermission(['bids.create']), 
 // Watchlist routes (authentication required)
 router.post('/:id/watchlist', authenticateToken, auctionController.addToWatchlist);
 router.delete('/:id/watchlist', authenticateToken, auctionController.removeFromWatchlist);
-router.get('/:id/watchlist/status', authenticateToken, auctionController.checkWatchlistStatus);
+router.get('/:id/watchlist/status', authenticateToken, statusCheckRateLimit, auctionController.checkWatchlistStatus);
 router.get('/user/watchlist', authenticateToken, auctionController.getUserWatchlist);
 
 // Admin/Seller routes (permission-based) - Ready for future implementation

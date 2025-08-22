@@ -3,6 +3,24 @@ const Product = require('../../models/Product');
 const Bid = require("../../models/Bid");
 const {pool} = require("../../config/database");
 const Watchlist = require('../../models/Watchlist');
+
+// ✅ ADD: Helper function for status filtering
+const buildStatusCondition = (status) => {
+  switch (status) {
+    case 'active':
+      return "AND a.end_time > NOW() AND a.status = 'active'";
+    case 'ended':
+      return "AND a.end_time <= NOW()"; // Don't rely on status field alone
+    case 'scheduled':
+      return "AND a.start_time > NOW() AND a.status = 'scheduled'";
+    case 'all':
+      return '';
+    default:
+      // Default to active auctions only
+      return "AND a.end_time > NOW() AND a.status = 'active'";
+  }
+};
+
 // Get all auctions with filtering, sorting, and pagination
 const getAllAuctions = async (req, res) => {
   try {
@@ -11,7 +29,7 @@ const getAllAuctions = async (req, res) => {
     const filters = {
       category: req.query.category,
       subcategory: req.query.subcategory,
-      status: req.query.status || 'active',
+      status: req.query.status || 'active', // ✅ ENSURE: Default to active
       condition: req.query.condition,
       minPrice: req.query.minPrice,
       maxPrice: req.query.maxPrice,
@@ -21,6 +39,7 @@ const getAllAuctions = async (req, res) => {
       offset: parseInt(req.query.offset) || 0
     };
 
+    // ✅ ENHANCED: Pass status filter properly to the model
     const result = await Auction.getAllWithDetails(filters);
 
     res.json({
@@ -91,7 +110,7 @@ const getAuctionsByCategory = async (req, res) => {
     const filters = {
       category: categorySlug,
       subcategory: subcategorySlug,
-      status: req.query.status || 'active',
+      status: req.query.status || 'active', // ✅ ENSURE: Default to active
       condition: req.query.condition,
       minPrice: req.query.minPrice,
       maxPrice: req.query.maxPrice,
@@ -135,7 +154,7 @@ const getFeaturedAuctions = async (req, res) => {
     const { type } = req.query; // 'ending_soon', 'popular', 'new'
 
     let filters = {
-      status: 'active',
+      status: 'active', // ✅ ENSURE: Only active auctions for featured
       limit: parseInt(req.query.limit) || 10,
       offset: 0
     };
@@ -208,9 +227,8 @@ const getAuctionBids = async (req, res) => {
       message: 'Failed to fetch bid updates'
     });
   }
-
-
 };
+
 // Place a bid on an auction
 const placeBid = async (req, res) => {
   try {
@@ -252,7 +270,7 @@ const placeBid = async (req, res) => {
       });
     }
 
-    // 4. Auction Time Check
+    // ✅ ENHANCED: Auction Time Check (double-check for ended auctions)
     const now = new Date();
     const endTime = new Date(auction.endTime);
     if (now >= endTime) {
@@ -463,7 +481,6 @@ const addToWatchlist = async (req, res) => {
   }
 };
 
-
 // Remove auction from watchlist
 const removeFromWatchlist = async (req, res) => {
   try {
@@ -496,6 +513,45 @@ const removeFromWatchlist = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to remove auction from watchlist'
+    });
+  }
+};
+
+// Get watchlist status for multiple auctions
+const getMultipleWatchlistStatus = async (req, res) => {
+  try {
+    const userId = req.user?.userId || req.user?.id;
+    const { auctionIds } = req.body; // Array of auction IDs
+
+    if (!auctionIds || !Array.isArray(auctionIds)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Valid auction IDs array is required'
+      });
+    }
+
+    const query = `
+      SELECT auction_id, true as is_in_watchlist 
+      FROM watchlists 
+      WHERE user_id = $1 AND auction_id = ANY($2::int[])
+    `;
+    
+    const result = await pool.query(query, [userId, auctionIds]);
+    
+    // Create a map of auction_id -> is_in_watchlist
+    const watchlistMap = {};
+    auctionIds.forEach(id => watchlistMap[id] = false);
+    result.rows.forEach(row => watchlistMap[row.auction_id] = true);
+
+    res.json({
+      success: true,
+      data: watchlistMap
+    });
+  } catch (error) {
+    console.error('Get multiple watchlist status error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch watchlist status'
     });
   }
 };
@@ -537,7 +593,6 @@ const checkWatchlistStatus = async (req, res) => {
   }
 };
 
-
 // Get user's watchlist
 const getUserWatchlist = async (req, res) => {
   try {
@@ -573,7 +628,6 @@ const getUserWatchlist = async (req, res) => {
   }
 };
 
-
 module.exports = {
   getAllAuctions,
   getAuctionById,
@@ -586,5 +640,8 @@ module.exports = {
   addToWatchlist,
   removeFromWatchlist,
   checkWatchlistStatus,
-  getUserWatchlist
+  getUserWatchlist,
+
+  // ✅ ADD: Export helper function for use in Auction model
+  buildStatusCondition
 };

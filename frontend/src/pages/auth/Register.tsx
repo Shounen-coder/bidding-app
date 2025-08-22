@@ -75,32 +75,7 @@ const Register: React.FC = () => {
     }
   };
 
-  // Success state
-  if (registrationSuccess) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-md w-full">
-          <div className="bg-white rounded-lg shadow-md p-8 text-center">
-            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
-            </div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">
-              Welcome to BIDDEX!
-            </h2>
-            <p className="text-gray-600 mb-6">
-              Your account has been created successfully. You can now start bidding on amazing items.
-            </p>
-            <LoadingButton variant="primary" className="w-full">
-              <Link to="/login">Continue to Sign In</Link>
-            </LoadingButton>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
+  // And update the success message link:
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full">

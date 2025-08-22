@@ -3,6 +3,7 @@ import { useSelector } from 'react-redux';
 import { type RootState } from '../../store';
 import LoadingButton from '../ui/LoadingButton';
 import BidConfirmationModal from './BidConfirmationModal';
+import { set } from 'react-hook-form';
 
 interface BidFormProps {
   auctionId: number;
@@ -152,6 +153,8 @@ const BidForm: React.FC<BidFormProps> = ({
 
   const { user } = useSelector((state: RootState) => state.auth || {});
 
+  //  const { user, accessToken } = useSelector((state: RootState) => state.auth || {});
+
   const formatPrice = (price: number) => 
     price.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
 
@@ -210,55 +213,84 @@ const BidForm: React.FC<BidFormProps> = ({
     setIsConfirmationOpen(true);
   };
 
-  const handleConfirmBid = async () => {
-    setIsLoading(true);
-    setError(null);
+const handleConfirmBid = async () => {
+  setIsLoading(true);
+  setError(null);
 
-    try {
-      const amount = parseFloat(bidAmount);
-      
-      const response = await fetch(`/api/auctions/${auctionId}/bids`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ amount })
-      });
+  try {
+    const amount = parseFloat(bidAmount);
+    
+    // ✅ CHECK: User authentication
+    if (!user) {
+      setError('Please log in to place bids');
+      setIsConfirmationOpen(false);
+      setIsLoading(false);
+      return;
+    }
 
-      const data = await response.json();
+    // ✅ CHECK: Get access token
+    const token = localStorage.getItem('accessToken');
+    
+    if (!token) {
+      setError('Authentication token missing. Please login again.');
+      setIsConfirmationOpen(false);
+      setIsLoading(false);
+      return;
+    }
+    
+    // ✅ FIXED: API call with Authorization header
+    const response = await fetch(`/api/auctions/${auctionId}/bids`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}` // ✅ ADDED THIS LINE
+      },
+      body: JSON.stringify({ amount })
+    });
 
-      if (data.success) {
-        // Success flow
-        if(amount !== lastNotificationAmount) {
-          setLastNotificationAmount(amount);
+    // ✅ HANDLE: 401 Unauthorized
+    if (response.status === 401) {
+      setIsConfirmationOpen(false);
+      setError('Session expired or unauthorized. Please login again.');
+      setIsLoading(false);
+      return;
+    }
+
+    const data = await response.json();
+
+    if (data.success) {
+      // Success flow
+      if(amount !== lastNotificationAmount) {
+        setLastNotificationAmount(amount);
         setIsConfirmationOpen(false);
         setBidAmount('');
         setLastBidAmount(amount);
         setShowSuccessNotification(true);
         setButtonState('success');
-
-        }
-        
-        // Immediate callback for instant data refresh
-        if (onBidPlaced) {
-          onBidPlaced(data.data);
-        }
-        
-      } else {
-        // Error flow
-        setIsConfirmationOpen(false);
-        setError(data.message || 'Failed to place bid');
-        setButtonState('error');
       }
-
-    } catch (error) {
+      
+      // Callback for instant data refresh
+      if (onBidPlaced) {
+        onBidPlaced(data.data);
+      }
+      
+    } else {
+      // Error flow
       setIsConfirmationOpen(false);
-      setError('Network error. Please check your connection and try again.');
+      setError(data.message || 'Failed to place bid');
       setButtonState('error');
-    } finally {
-      setIsLoading(false);
     }
-  };
+
+  } catch (error) {
+    setIsConfirmationOpen(false);
+    setError('Network error. Please check your connection and try again.');
+    setButtonState('error');
+    console.error('Bid placement error:', error);
+  } finally {
+    setIsLoading(false);
+  }
+};
+
 
   const handleCancelBid = () => {
     setIsConfirmationOpen(false);

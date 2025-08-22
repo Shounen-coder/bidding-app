@@ -67,6 +67,12 @@ const AuctionDetail: React.FC = () => {
   // Check if current user is winning bidder
   const isWinningBidder = Boolean(user && currentAuction?.currentWinnerId === user.id);
   // In your AuctionDetail component, restructure the layout like this:
+
+
+
+  const isAuctionEnded = new Date(endTime) <= new Date();
+
+
 return (
   <div className="max-w-7xl mx-auto p-6">
   {/* Header - Updated with Watchlist on the Right */}
@@ -79,17 +85,25 @@ return (
 
   {/* Right side - Watchlist and Actions */}
   <div className="flex items-center space-x-3 lg:mt-2">
-    <WatchlistButton
-      auctionId={currentAuction.id}
-      auctionTitle={product.title}
-      variant="large"
-      onStatusChange={(isWatched) => {
-        const message = isWatched 
-          ? 'Added to your watchlist! You\'ll receive notifications about this auction.'
-          : 'Removed from watchlist.';
-        notifySuccess(isWatched ? 'Added to Watchlist' : 'Removed from Watchlist', message);
-      }}
-    />
+    {!isAuctionEnded ? (
+  <WatchlistButton
+    auctionId={currentAuction.id}
+    auctionTitle={product.title}
+    variant="large"
+    className="shadow-lg hover:shadow-xl"
+    onStatusChange={(isWatched) => {
+      const message = isWatched
+        ? 'Added to your watchlist! You\'ll receive notifications about this auction.'
+        : 'Removed from watchlist.';
+      notifySuccess(isWatched ? 'Added to Watchlist' : 'Removed from Watchlist', message);
+    }}
+  />
+) : (
+  <div className="bg-red-50 border-2 border-red-200 rounded-xl p-4 text-center">
+    <div className="text-red-700 font-semibold">Auction Has Ended</div>
+    <div className="text-red-600 text-sm mt-1">Bidding is no longer available</div>
+  </div>
+)}
     
     <button className="p-3 bg-gray-50 text-gray-600 hover:bg-gray-100 rounded-full transition-colors">
       <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -139,6 +153,7 @@ return (
       </div>
 
       {/* Bid Form */}
+      {!isAuctionEnded ? (
       <BidForm
         auctionId={currentAuction.id}
         auctionTitle={product.title}
@@ -167,7 +182,14 @@ return (
             ]
           );
         }}
-      />
+
+      />) : (<div className="bg-gray-50 border-2 border-gray-200 rounded-xl p-6 text-center">
+    <h3 className="text-lg font-semibold text-gray-700 mb-2">Auction Has Ended</h3>
+    <p className="text-gray-600">
+      Final winning bid: <span className="font-bold text-green-600">{formatPrice(currentPrice)}</span>
+    </p>
+  </div>
+      )}
 
       {/* Enhanced Live Bid History */}
       <div id="bid-history" className="bg-white rounded-xl shadow-lg p-6">
@@ -187,6 +209,7 @@ return (
           initialBids={currentAuction.bids || []}
           currentUserId={user?.id}
           auctionStatus={currentAuction.status}
+          
         />
       </div>
     </div>

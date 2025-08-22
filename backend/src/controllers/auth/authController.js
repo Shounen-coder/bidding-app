@@ -33,6 +33,36 @@ const register = async (req, res) => {
       role: 'user'
     });
 
+    try {
+  const Role = require('../../models/Role');
+  const userRole = await Role.findByName('user');
+  
+  if (userRole) {
+    await Role.assignRoleToUser(user.id, userRole.id);
+    console.log(`✅ Assigned 'user' role to new user: ${user.username}`);
+    
+    // VERIFY the assignment worked
+    const hasPermission = await Role.userHasPermission(user.id, 'bids.create');
+    console.log(`✅ User ${user.username} has bids.create permission:`, hasPermission);
+    
+    if (!hasPermission) {
+      // Force create permission if missing
+      const pool = require('../config/database');
+      await pool.query(`
+        INSERT INTO role_permissions (role_id, permission_id)
+        SELECT r.id, p.id FROM roles r, permissions p
+        WHERE r.name = 'user' AND p.name = 'bids.create'
+        ON CONFLICT DO NOTHING
+      `);
+      console.log('✅ Ensured bids.create permission for user role');
+    }
+  } else {
+    console.error('❌ Default "user" role not found in database!');
+  }
+} catch (roleError) {
+  console.error('❌ Role assignment failed:', roleError);
+}
+
     // Generate tokens
     const tokens = generateTokens(user, rememberMe);
 

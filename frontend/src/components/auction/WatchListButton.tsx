@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useSelector } from 'react-redux';
 import { type RootState } from '../../store';
 
@@ -9,7 +9,7 @@ interface WatchlistButtonProps {
   className?: string;
   onStatusChange?: (isWatched: boolean) => void;
   
-  // NEW: Add custom color props
+  // Color customization props
   customWatchedBg?: string;
   customWatchedText?: string;
   customUnwatchedBg?: string;
@@ -17,25 +17,17 @@ interface WatchlistButtonProps {
   customHoverBg?: string;
 }
 
-
 const WatchlistButton: React.FC<WatchlistButtonProps> = ({
   auctionId,
   auctionTitle,
   variant = 'default',
   className = '',
   onStatusChange,
-
-// NEW: Accept custom color props with defaults
   customWatchedBg,
   customWatchedText,
   customUnwatchedBg,
   customUnwatchedText,
   customHoverBg
-
-
-
-
-
 }) => {
   const [isWatched, setIsWatched] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -43,16 +35,47 @@ const WatchlistButton: React.FC<WatchlistButtonProps> = ({
 
   const { user } = useSelector((state: RootState) => state.auth || {});
 
+  // Prevent duplicate API calls
+  const hasFetchedRef = useRef(false);
+
   // Check watchlist status on component mount
   useEffect(() => {
-    if (user && auctionId) {
+    if (user && auctionId && !hasFetchedRef.current) {
+      hasFetchedRef.current = true;
       checkWatchlistStatus();
     }
   }, [user, auctionId]);
 
+  // ✅ FIXED - With Authorization header
   const checkWatchlistStatus = async () => {
     try {
-      const response = await fetch(`/api/auctions/${auctionId}/watchlist/status`);
+      const token = localStorage.getItem('accessToken');
+      
+      if (!token) {
+        console.log('No token available');
+        hasFetchedRef.current = false;
+        return;
+      }
+
+      const response = await fetch(`/api/auctions/${auctionId}/watchlist/status`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.status === 401) {
+        console.warn('Unauthorized - token may be expired');
+        hasFetchedRef.current = false;
+        return;
+      }
+
+      if (response.status === 429) {
+        console.warn('Rate limited - too many requests');
+        hasFetchedRef.current = false;
+        return;
+      }
+      
       const data = await response.json();
       
       if (data.success) {
@@ -60,12 +83,14 @@ const WatchlistButton: React.FC<WatchlistButtonProps> = ({
       }
     } catch (error) {
       console.error('Error checking watchlist status:', error);
+    } finally {
+      hasFetchedRef.current = false;
     }
   };
 
+  // ✅ FIXED - Added Authorization header
   const handleToggleWatchlist = async () => {
     if (!user) {
-      // Handle unauthenticated user - show login prompt
       alert('Please log in to add items to your watchlist');
       return;
     }
@@ -73,11 +98,20 @@ const WatchlistButton: React.FC<WatchlistButtonProps> = ({
     setIsLoading(true);
 
     try {
+      const token = localStorage.getItem('accessToken');
+      
+      if (!token) {
+        alert('No access token available, please login again');
+        setIsLoading(false);
+        return;
+      }
+
       const method = isWatched ? 'DELETE' : 'POST';
       const response = await fetch(`/api/auctions/${auctionId}/watchlist`, {
         method,
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}` // ✅ ADDED THIS LINE
         }
       });
 
@@ -91,13 +125,13 @@ const WatchlistButton: React.FC<WatchlistButtonProps> = ({
           onStatusChange(newStatus);
         }
 
-        // Show success feedback (you can integrate with your notification system)
         const message = newStatus 
           ? `"${auctionTitle}" added to watchlist` 
           : `"${auctionTitle}" removed from watchlist`;
         
-        // Simple toast notification (replace with your notification system)
         showToast(message, newStatus ? 'success' : 'info');
+      } else {
+        showToast('Failed to update watchlist', 'error');
       }
 
     } catch (error) {
@@ -108,48 +142,44 @@ const WatchlistButton: React.FC<WatchlistButtonProps> = ({
     }
   };
 
-  // Simple toast notification function (replace with your system)
   const showToast = (message: string, type: 'success' | 'info' | 'error') => {
-    // You can integrate this with your existing notification system
     console.log(`${type.toUpperCase()}: ${message}`);
   };
 
   const getButtonStyles = () => {
-  const base = "inline-flex items-center justify-center transition-all duration-200 font-medium focus:outline-none focus:ring-2 focus:ring-offset-2";
-  
-  // Use custom colors if provided, otherwise use original defaults
-  const watchedBg = customWatchedBg || 'bg-red-50';
-  const watchedText = customWatchedText || 'text-red-600';
-  const watchedHover = customHoverBg || 'hover:bg-red-100';
-  
-  const unwatchedBg = customUnwatchedBg || 'bg-blue-50';
-  const unwatchedText = customUnwatchedText || 'text-blue-600';
-  const unwatchedHover = customHoverBg || 'hover:bg-blue-100';
-  
-  switch (variant) {
-    case 'large':
-      return `${base} px-6 py-3 text-lg rounded-xl ${
-        isWatched 
-          ? `${watchedBg} ${watchedText} border-2 border-current ${watchedHover} focus:ring-red-500` 
-          : `${unwatchedBg} ${unwatchedText} border-2 border-current ${unwatchedHover} focus:ring-blue-500`
-      }`;
+    const base = "inline-flex items-center justify-center transition-all duration-200 font-medium focus:outline-none focus:ring-2 focus:ring-offset-2";
     
-    case 'icon-only':
-      return `${base} p-3 rounded-full ${
-        isWatched 
-          ? `${watchedBg} ${watchedText} ${watchedHover}` 
-          : `bg-gray-50 text-gray-600 hover:bg-blue-50 hover:text-blue-600`
-      }`;
+    const watchedBg = customWatchedBg || 'bg-red-50';
+    const watchedText = customWatchedText || 'text-red-600';
+    const watchedHover = customHoverBg || 'hover:bg-red-100';
     
-    default:
-      return `${base} px-4 py-2 text-sm rounded-lg ${
-        isWatched 
-          ? `${watchedBg} ${watchedText} border border-current ${watchedHover} focus:ring-red-500` 
-          : `bg-gray-50 text-gray-600 border border-gray-200 hover:bg-blue-50 hover:text-blue-600 focus:ring-blue-500`
-      }`;
-  }
-};
-
+    const unwatchedBg = customUnwatchedBg || 'bg-blue-50';
+    const unwatchedText = customUnwatchedText || 'text-blue-600';
+    const unwatchedHover = customHoverBg || 'hover:bg-blue-100';
+    
+    switch (variant) {
+      case 'large':
+        return `${base} px-6 py-3 text-lg rounded-xl ${
+          isWatched 
+            ? `${watchedBg} ${watchedText} border-2 border-current ${watchedHover} focus:ring-red-500` 
+            : `${unwatchedBg} ${unwatchedText} border-2 border-current ${unwatchedHover} focus:ring-blue-500`
+        }`;
+      
+      case 'icon-only':
+        return `${base} p-3 rounded-full ${
+          isWatched 
+            ? `${watchedBg} ${watchedText} ${watchedHover}` 
+            : `bg-gray-50 text-gray-600 hover:bg-blue-50 hover:text-blue-600`
+        }`;
+      
+      default:
+        return `${base} px-4 py-2 text-sm rounded-lg ${
+          isWatched 
+            ? `${watchedBg} ${watchedText} border border-current ${watchedHover} focus:ring-red-500` 
+            : `bg-gray-50 text-gray-600 border border-gray-200 hover:bg-blue-50 hover:text-blue-600 focus:ring-blue-500`
+        }`;
+    }
+  };
 
   const getIcon = () => {
     if (isLoading) {

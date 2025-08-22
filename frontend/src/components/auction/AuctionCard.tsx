@@ -11,12 +11,14 @@ interface AuctionCardProps {
   auction: Auction;
   className?: string;
   variant?: 'default' | 'featured' | 'compact';
+  isEnded?: boolean; // Already present
 }
 
 const AuctionCard: React.FC<AuctionCardProps> = ({ 
   auction, 
   className = '',
-  variant = 'default'
+  variant = 'default',
+  isEnded = false 
 }) => {
   const { product, category, seller, currentPrice, totalBids, endTime, status, reserveMet } = auction;
   const [isHovered, setIsHovered] = useState(false);
@@ -27,6 +29,9 @@ const AuctionCard: React.FC<AuctionCardProps> = ({
   if (!product) {
     return null;
   }
+
+  // ✅ ADD: Calculate if auction is ended based on endTime if isEnded prop not provided
+  const auctionEnded = isEnded || new Date(endTime) <= new Date();
 
   // Format price with commas
   const formatPrice = (price: number) => {
@@ -73,11 +78,20 @@ const AuctionCard: React.FC<AuctionCardProps> = ({
     );
   };
 
-  // UPDATED: Modern card variants without gradient background for featured
+  // ✅ UPDATED: Add opacity for ended auctions
   const cardVariants = {
-    default: 'bg-white rounded-2xl shadow-sm hover:shadow-xl border border-gray-100 hover:border-gray-200 transition-all duration-300 transform hover:-translate-y-1',
-    featured: 'bg-white rounded-2xl shadow-lg hover:shadow-2xl border-2 border-[#2B5263] hover:border-[#1e3c47] transition-all duration-300 transform hover:-translate-y-2 ring-1 ring-[#2B5263]/20',
-    compact: 'bg-white rounded-xl shadow-sm hover:shadow-lg border border-gray-100 hover:border-gray-200 transition-all duration-200 transform hover:-translate-y-0.5'
+    default: clsx(
+      'bg-white rounded-2xl shadow-sm hover:shadow-xl border border-gray-100 hover:border-gray-200 transition-all duration-300 transform hover:-translate-y-1',
+      auctionEnded && 'opacity-75'
+    ),
+    featured: clsx(
+      'bg-white rounded-2xl shadow-lg hover:shadow-2xl border-2 border-[#2B5263] hover:border-[#1e3c47] transition-all duration-300 transform hover:-translate-y-2 ring-1 ring-[#2B5263]/20',
+      auctionEnded && 'opacity-75 border-gray-300 hover:border-gray-400'
+    ),
+    compact: clsx(
+      'bg-white rounded-xl shadow-sm hover:shadow-lg border border-gray-100 hover:border-gray-200 transition-all duration-200 transform hover:-translate-y-0.5',
+      auctionEnded && 'opacity-75'
+    )
   };
 
   const imageVariants = {
@@ -95,6 +109,15 @@ const AuctionCard: React.FC<AuctionCardProps> = ({
       <Link to={`/auctions/${auction.id}`} className="block group">
         {/* Image Section with Modern Gradient Overlay */}
         <div className={clsx('relative overflow-hidden rounded-t-2xl bg-gradient-to-br from-gray-100 to-gray-200', imageVariants[variant])}>
+          {/* ✅ ADD: Ended overlay for visual indication */}
+          {auctionEnded && (
+            <div className="absolute inset-0 bg-black/20 z-20 flex items-center justify-center">
+              <div className="bg-red-600 text-white px-4 py-2 rounded-full text-sm font-bold transform rotate-12 shadow-lg">
+                AUCTION ENDED
+              </div>
+            </div>
+          )}
+
           {/* Placeholder with modern pattern */}
           <div className="absolute inset-0 bg-gradient-to-br from-gray-50 via-gray-100 to-gray-150">
             <div className="absolute inset-0 opacity-10">
@@ -127,7 +150,7 @@ const AuctionCard: React.FC<AuctionCardProps> = ({
               {product.condition.charAt(0).toUpperCase() + product.condition.slice(1).replace('-', ' ')}
             </span>
             
-            {/* UPDATED: Featured badge with consistent color */}
+            {/* Featured badge with consistent color */}
             {variant === 'featured' && (
               <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-[#2B5263] text-white shadow-lg">
                 <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
@@ -137,18 +160,19 @@ const AuctionCard: React.FC<AuctionCardProps> = ({
               </span>
             )}
 
-            {/* Status badge with modern glow effect */}
+            {/* ✅ UPDATED: Status badge to reflect ended status */}
             <span className={clsx(
               'inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold backdrop-blur-sm shadow-lg',
+              auctionEnded ? 'bg-gradient-to-r from-gray-500 to-gray-600 text-white' :
               status === 'active' ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-green-200' :
-              status === 'ended' ? 'bg-gradient-to-r from-gray-500 to-gray-600 text-white' :
               'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-amber-200'
             )}>
               <div className={clsx(
                 'w-2 h-2 rounded-full mr-2',
+                auctionEnded ? 'bg-white/70' : 
                 status === 'active' ? 'bg-white animate-pulse' : 'bg-white/70'
               )} />
-              {status === 'active' ? 'Live' : status === 'ended' ? 'Ended' : 'Scheduled'}
+              {auctionEnded ? 'Ended' : status === 'active' ? 'Live' : 'Scheduled'}
             </span>
           </div>
 
@@ -220,9 +244,12 @@ const AuctionCard: React.FC<AuctionCardProps> = ({
           <div className="bg-gradient-to-r from-gray-50 to-gray-50/50 rounded-xl p-4 mb-4 border border-gray-100">
             <div className="flex items-center justify-between">
               <div className="flex-1">
-                <div className="text-xs text-gray-500 mb-1 font-medium uppercase tracking-wide">Current Bid</div>
+                <div className="text-xs text-gray-500 mb-1 font-medium uppercase tracking-wide">
+                  {auctionEnded ? 'Final Bid' : 'Current Bid'}
+                </div>
                 <div className={clsx(
-                  'font-bold text-green-600',
+                  'font-bold',
+                  auctionEnded ? 'text-gray-600' : 'text-green-600',
                   variant === 'featured' ? 'text-2xl' : 'text-xl'
                 )}>
                   {formatPrice(currentBidAmount)}
@@ -237,20 +264,36 @@ const AuctionCard: React.FC<AuctionCardProps> = ({
                 )}
               </div>
               
-              <div className="text-right">
-                <div className="text-xs text-gray-500 mb-1 font-medium uppercase tracking-wide">
-                  {getBidText(totalBids)}
+              {/* ✅ UPDATED: Hide "Next Bid" for ended auctions */}
+              {!auctionEnded && (
+                <div className="text-right">
+                  <div className="text-xs text-gray-500 mb-1 font-medium uppercase tracking-wide">
+                    {getBidText(totalBids)}
+                  </div>
+                  <div className="text-lg text-[#2B5263] font-bold">
+                    {formatPrice(nextBidAmount)}
+                  </div>
+                  <div className="text-xs text-gray-400 mt-1">Next Bid</div>
                 </div>
-                <div className="text-lg text-[#2B5263] font-bold">
-                  {formatPrice(nextBidAmount)}
+              )}
+
+              {/* ✅ ADD: Show total bids for ended auctions */}
+              {auctionEnded && (
+                <div className="text-right">
+                  <div className="text-xs text-gray-500 mb-1 font-medium uppercase tracking-wide">
+                    Total Bids
+                  </div>
+                  <div className="text-lg text-gray-600 font-bold">
+                    {totalBids}
+                  </div>
+                  <div className="text-xs text-gray-400 mt-1">Final Count</div>
                 </div>
-                <div className="text-xs text-gray-400 mt-1">Next Bid</div>
-              </div>
+              )}
             </div>
           </div>
 
-          {/* Countdown Timer with modern styling */}
-          {status === 'active' && (
+          {/* ✅ UPDATED: Only show countdown for active, non-ended auctions */}
+          {status === 'active' && !auctionEnded && (
             <div className="mb-4">
               <div className="flex items-center justify-between mb-2">
                 <div className="text-xs text-gray-500 font-medium uppercase tracking-wide">Time Remaining</div>
@@ -265,8 +308,8 @@ const AuctionCard: React.FC<AuctionCardProps> = ({
             </div>
           )}
 
-          {/* Status Messages with Enhanced Design */}
-          {status === 'ended' && (
+          {/* ✅ UPDATED: Status Messages with Enhanced Design */}
+          {(status === 'ended' || auctionEnded) && (
             <div className="mb-4">
               <div className="text-center py-4 bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl border border-gray-200">
                 <span className="text-sm font-semibold text-gray-700 flex items-center justify-center">
@@ -277,7 +320,7 @@ const AuctionCard: React.FC<AuctionCardProps> = ({
                 </span>
                 {totalBids > 0 && (
                   <div className="text-xs text-gray-500 mt-1">
-                    Final bid: {formatPrice(currentBidAmount)}
+                    Final bid: {formatPrice(currentBidAmount)} ({totalBids} {totalBids === 1 ? 'bid' : 'bids'})
                   </div>
                 )}
               </div>
@@ -300,36 +343,32 @@ const AuctionCard: React.FC<AuctionCardProps> = ({
             </div>
           )}
 
- {/* UPDATED: Watch This Auction Button with custom brand colors */}
-{status === 'active' && (
-  <div 
-    className="relative"
-    onClick={(e) => {
-      e.preventDefault();
-      e.stopPropagation();
-    }}
-  >
-    <WatchlistButton
-      auctionId={auction.id}
-      auctionTitle={product.title}
-      variant="large"
-      onStatusChange={handleWatchlistChange}
-      className="w-full"
-      // CUSTOM COLORS: Your brand colors only for auction cards
-      customWatchedBg="bg-[#1e3c47]"
-      customWatchedText="text-white"
-      customUnwatchedBg="bg-[#2B5263]"
-      customUnwatchedText="text-white"
-      customHoverBg="hover:bg-[#1e3c47]"
-    />
-  </div>
-)}
+          {/* ✅ UPDATED: Only show WatchlistButton for active, non-ended auctions */}
+          {status === 'active' && !auctionEnded && (
+            <div 
+              className="relative"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+              }}
+            >
+              <WatchlistButton
+                auctionId={auction.id}
+                auctionTitle={product.title}
+                variant="large"
+                onStatusChange={handleWatchlistChange}
+                className="w-full"
+                customWatchedBg="bg-[#1e3c47]"
+                customWatchedText="text-white"
+                customUnwatchedBg="bg-[#2B5263]"
+                customUnwatchedText="text-white"
+                customHoverBg="hover:bg-[#1e3c47]"
+              />
+            </div>
+          )}
 
-
-
-
-          {/* View Details button for non-active auctions */}
-          {status !== 'active' && (
+          {/* ✅ UPDATED: Show "View Details" button for ended or non-active auctions */}
+          {(status !== 'active' || auctionEnded) && (
             <Link 
               to={`/auctions/${auction.id}`}
               className="block w-full bg-[#2B5263] hover:bg-[#1e3c47] text-white py-3 px-6 rounded-xl text-sm font-semibold transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-xl text-center"
