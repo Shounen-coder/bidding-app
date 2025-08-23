@@ -1,10 +1,13 @@
-import React, { useState, Fragment } from 'react';
-import { Outlet, NavLink, useNavigate, Link } from 'react-router-dom';
+// src/pages/dashboard/DashboardLayout.tsx
+import React, { useState, Fragment, useEffect } from 'react';
+import { Outlet, NavLink, useNavigate, Link, useLocation } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { Dialog, Transition, Menu } from '@headlessui/react';
 import type { AppDispatch, RootState } from '../../store';
 import { logoutUser } from '../../store/slices/authSlice';
+import TierBadge from '../../components/seller/TierBadge';
 
+// PRESERVED: Your existing navigation items
 const navigationItems = [
   { name: 'Overview', path: '', icon: '🏠', description: 'Dashboard overview' },
   { name: 'Profile', path: 'profile', icon: '👤', description: 'Personal information' },
@@ -17,11 +20,43 @@ const navigationItems = [
   { name: 'Help', path: 'help', icon: '❓', description: 'Support & FAQs' },
 ];
 
+// NEW: Seller navigation items
+const sellerNavigationItems = [
+  { name: 'Overview', path: 'sell', icon: '📊', description: 'Seller dashboard' },
+  { name: 'Create Auction', path: 'sell/create', icon: '➕', description: 'List new item' },
+  { name: 'My Auctions', path: 'sell/auctions', icon: '🏷️', description: 'Manage listings' },
+  { name: 'Analytics', path: 'sell/analytics', icon: '📈', description: 'Performance data', badge: 'Pro' },
+  { name: 'Orders', path: 'sell/orders', icon: '📦', description: 'Sales management' },
+  { name: 'Seller Academy', path: 'sell/academy', icon: '🎓', description: 'Learning center' },
+];
+
 const DashboardLayout: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarMode, setSidebarMode] = useState<'buyer' | 'seller'>('buyer');
+  const [isTransitioning, setIsTransitioning] = useState(false);
+  
   const dispatch = useDispatch<AppDispatch>();
   const user = useSelector((state: RootState) => state.auth.user);
+  const { profile: sellerProfile } = useSelector((state: RootState) => state.seller || { 
+    profile: { tier: 'basic', stats: { completedAuctions: 0 } } 
+  });
+  
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Determine sidebar mode based on current route
+  useEffect(() => {
+    const isSellerRoute = location.pathname.startsWith('/dashboard/sell');
+    const newMode = isSellerRoute ? 'seller' : 'buyer';
+    
+    if (newMode !== sidebarMode) {
+      setIsTransitioning(true);
+      setTimeout(() => {
+        setSidebarMode(newMode);
+        setIsTransitioning(false);
+      }, 150);
+    }
+  }, [location.pathname, sidebarMode]);
 
   const handleLogout = async () => {
     try {
@@ -33,145 +68,314 @@ const DashboardLayout: React.FC = () => {
     }
   };
 
+  const handleBackToBuyer = () => {
+    setIsTransitioning(true);
+    setTimeout(() => {
+      setSidebarMode('buyer');
+      navigate('/dashboard');
+      setIsTransitioning(false);
+    }, 100);
+  };
+
+  const currentNavigationItems = sidebarMode === 'seller' ? sellerNavigationItems : navigationItems;
+  const sidebarTitle = sidebarMode === 'seller' ? 'Seller Dashboard' : 'Dashboard';
+  const headerTitle = sidebarMode === 'seller' ? 'Seller Hub' : 'Dashboard';
+
   return (
-    <div className="min-h-screen bg-gray-50 flex">
-      {/* Mobile Sidebar */}
-      <Dialog open={sidebarOpen} onClose={setSidebarOpen} className="relative z-50 md:hidden">
-        <div className="fixed inset-0 bg-gray-600/75" aria-hidden="true" />
-        
-        <div className="fixed inset-0 flex">
-          <Dialog.Panel className="relative mr-16 flex w-full max-w-xs flex-1">
-            <div className="absolute left-full top-0 flex w-16 justify-center pt-5">
-              <button type="button" className="-m-2.5 p-2.5" onClick={() => setSidebarOpen(false)}>
-                <span className="sr-only">Close sidebar</span>
-                <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
+    <>
+      {/* Mobile Sidebar - PRESERVED with enhancements */}
+      <Transition.Root show={sidebarOpen} as={Fragment}>
+        <Dialog as="div" className="relative z-50 lg:hidden" onClose={setSidebarOpen}>
+          <Transition.Child
+            as={Fragment}
+            enter="transition-opacity ease-linear duration-300"
+            enterFrom="opacity-0"
+            enterTo="opacity-100"
+            leave="transition-opacity ease-linear duration-300"
+            leaveFrom="opacity-100"
+            leaveTo="opacity-0"
+          >
+            <div className="fixed inset-0 bg-gray-900/80" />
+          </Transition.Child>
 
-            <div className="flex grow flex-col gap-y-5 overflow-y-auto bg-white px-6 pb-4">
-              {/* Mobile Header */}
-              <div className="flex h-16 shrink-0 items-center">
-                <div className="w-8 h-8 rounded-lg bg-[#294c5b] flex items-center justify-center">
-                  <span className="text-white font-bold text-lg">B</span>
-                </div>
-                <h2 className="ml-3 text-xl font-bold text-[#294c5b]">Biddex</h2>
-              </div>
-              
-              <nav className="flex flex-1 flex-col">
-                <ul role="list" className="flex flex-1 flex-col gap-y-7">
-                  <li>
-                    <ul role="list" className="-mx-2 space-y-1">
-                      {/* ADD: Back to Site Link - Mobile */}
-                      <li className="mb-4">
-                        <Link
-                          to="/"
-                          className="group flex gap-x-3 rounded-md p-3 text-sm leading-6 font-semibold text-gray-700 hover:text-white hover:bg-[#294c5b] border-b border-gray-200 pb-3"
-                          onClick={() => setSidebarOpen(false)}
-                        >
-                          <span className="text-lg">🏠</span>
-                          <div>
-                            <div>Back to Site</div>
-                            <div className="text-xs opacity-75">Return to main website</div>
-                          </div>
-                        </Link>
-                      </li>
-
-                      {/* Existing Navigation Items */}
-                      {navigationItems.map((item) => (
-                        <li key={item.path}>
-                          <NavLink
-                            to={`/dashboard/${item.path}`}
-                            className={({ isActive }) =>
-                              `group flex gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold ${
-                                isActive
-                                  ? 'bg-[#294c5b] text-white'
-                                  : 'text-gray-700 hover:text-white hover:bg-[#294c5b]'
-                              }`
-                            }
-                            onClick={() => setSidebarOpen(false)}
-                          >
-                            <span className="text-lg">{item.icon}</span>
-                            <div>
-                              <div>{item.name}</div>
-                              <div className="text-xs opacity-75">{item.description}</div>
-                            </div>
-                          </NavLink>
-                        </li>
-                      ))}
-                    </ul>
-                  </li>
-                  
-                  {/* Logout Button */}
-                  <li className="mt-auto">
+          <div className="fixed inset-0 flex">
+            <Transition.Child
+              as={Fragment}
+              enter="transition ease-in-out duration-300 transform"
+              enterFrom="-translate-x-full"
+              enterTo="translate-x-0"
+              leave="transition ease-in-out duration-300 transform"
+              leaveFrom="translate-x-0"
+              leaveTo="-translate-x-full"
+            >
+              <Dialog.Panel className="relative mr-16 flex w-full max-w-xs flex-1">
+                <div className={`flex grow flex-col gap-y-5 overflow-y-auto bg-gradient-to-b from-[#0f2027] via-[#203a43] to-[#2c5364] px-6 pb-4 transition-all duration-300 ${isTransitioning ? 'opacity-0' : 'opacity-100'}`}>
+                  <div className="flex h-16 shrink-0 items-center justify-between">
+                    <div className="text-white text-xl font-bold">
+                      <span className="bg-gradient-to-r from-teal-400 to-cyan-400 bg-clip-text text-transparent">B</span>
+                      <span className="text-white">IDDEX</span>
+                    </div>
                     <button
-                      onClick={handleLogout}
-                      className="group -mx-2 flex w-full gap-x-3 rounded-md p-2 text-sm font-semibold leading-6 text-red-600 hover:bg-red-50"
+                      type="button"
+                      className="-m-2.5 p-2.5 text-gray-300 hover:text-white"
+                      onClick={() => setSidebarOpen(false)}
                     >
+                      <span className="sr-only">Close sidebar</span>
                       <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" />
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                       </svg>
-                      Logout
                     </button>
-                  </li>
-                </ul>
-              </nav>
-            </div>
-          </Dialog.Panel>
-        </div>
-      </Dialog>
+                  </div>
 
-      {/* Desktop Sidebar */}
-      <div className="hidden md:fixed md:inset-y-0 md:z-50 md:flex md:w-72 md:flex-col">
-        <div className="flex grow flex-col gap-y-5 overflow-y-auto bg-white px-6 pb-4 border-r border-gray-200">
+                  {/* NEW: Back to Site Link - Mobile (PRESERVED) */}
+                  <Link
+                    to="/"
+                    className="group flex gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold text-gray-300 hover:text-white hover:bg-[#294c5b] transition-colors duration-200"
+                    onClick={() => setSidebarOpen(false)}
+                  >
+                    <span className="text-lg">🌐</span>
+                    <div>
+                      <div>Back to Site</div>
+                      <div className="text-xs text-gray-400">Return to main website</div>
+                    </div>
+                  </Link>
+
+                  {/* NEW: Mode toggle and back button for mobile */}
+                  {sidebarMode === 'seller' && (
+                    <button
+                      onClick={() => {
+                        handleBackToBuyer();
+                        setSidebarOpen(false);
+                      }}
+                      className="group flex gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold text-gray-300 hover:text-white hover:bg-[#294c5b] transition-colors duration-200"
+                    >
+                      <span className="text-lg">←</span>
+                      <div>
+                        <div>Back to Buyer</div>
+                        <div className="text-xs text-gray-400">Return to buyer dashboard</div>
+                      </div>
+                    </button>
+                  )}
+
+                  {/* NEW: User Info Section for Seller Mode - Mobile */}
+                  {sidebarMode === 'seller' && (
+                    <div className="border-b border-gray-600 pb-4">
+                      <div className="flex items-center space-x-3 mb-4">
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-r from-teal-400 to-cyan-400 flex items-center justify-center text-white font-bold text-lg">
+                          {user?.firstName?.charAt(0).toUpperCase() || 'U'}
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-white font-semibold text-sm">
+                            {user?.firstName} {user?.lastName}
+                          </p>
+                          <div className="flex items-center space-x-2 mt-1">
+                            <p className="text-gray-300 text-xs">Seller</p>
+                            <TierBadge tier={sellerProfile?.tier || 'basic'} size="xs" />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* NEW: Mobile Tier Progress */}
+                      <div className="p-3 bg-gray-800/50 rounded-lg">
+                        <div className="flex items-center justify-between text-xs text-gray-300 mb-2">
+                          <span>Progress to {sellerProfile?.tier === 'basic' ? 'Verified' : 'Trusted'}</span>
+                          <span>{sellerProfile?.stats?.completedAuctions || 0}/{sellerProfile?.tier === 'basic' ? '5' : '20'}</span>
+                        </div>
+                        <div className="w-full bg-gray-700 rounded-full h-2">
+                          <div 
+                            className="bg-gradient-to-r from-teal-400 to-cyan-400 h-2 rounded-full transition-all duration-300"
+                            style={{ 
+                              width: `${Math.min(100, ((sellerProfile?.stats?.completedAuctions || 0) / (sellerProfile?.tier === 'basic' ? 5 : 20)) * 100)}%` 
+                            }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Mobile Navigation Items */}
+                  <nav className="flex flex-1 flex-col">
+                    <ul role="list" className="flex flex-1 flex-col gap-y-7">
+                      <li>
+                        <ul role="list" className="-mx-2 space-y-1">
+                          {currentNavigationItems.map((item) => {
+                            const isActive = location.pathname === `/dashboard/${item.path}` || (item.path === '' && location.pathname === '/dashboard');
+                            
+                            return (
+                              <li key={item.name}>
+                                <NavLink
+                                  to={`/dashboard/${item.path}`}
+                                  className={`group flex gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold ${
+                                    isActive
+                                      ? 'bg-[#294c5b] text-white'
+                                      : 'text-gray-300 hover:text-white hover:bg-[#294c5b]'
+                                  } transition-colors duration-200`}
+                                  onClick={() => setSidebarOpen(false)}
+                                >
+                                  <span className="text-lg">{item.icon}</span>
+                                  <div className="flex-1">
+                                    <div className="flex items-center justify-between">
+                                      <span>{item.name}</span>
+                                      {(item as any).badge && sidebarMode === 'seller' && sellerProfile?.tier === 'basic' && (
+                                        <span className="px-2 py-1 text-xs bg-orange-500 text-white rounded-full">
+                                          {(item as any).badge}
+                                        </span>
+                                      )}
+                                    </div>
+                                    <div className="text-xs text-gray-400">{item.description}</div>
+                                  </div>
+                                </NavLink>
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      </li>
+                    </ul>
+                  </nav>
+
+                  {/* NEW: Seller mode toggle for mobile */}
+                  {sidebarMode === 'buyer' && (
+                    <div className="border-t border-gray-600 pt-4">
+                      <NavLink
+                        to="/dashboard/sell"
+                        className="group flex gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold text-gray-300 hover:text-white hover:bg-gradient-to-r from-teal-600 to-cyan-600 transition-all duration-200"
+                        onClick={() => setSidebarOpen(false)}
+                      >
+                        <span className="text-lg">💰</span>
+                        <div className="flex-1">
+                          <div className="flex items-center justify-between">
+                            <span>Start Selling</span>
+                            <TierBadge tier={sellerProfile?.tier || 'basic'} size="xs" />
+                          </div>
+                          <div className="text-xs text-gray-400">Switch to seller mode</div>
+                        </div>
+                      </NavLink>
+                    </div>
+                  )}
+
+                  {/* Logout Button - Mobile */}
+                  <div className="border-t border-gray-600 pt-4">
+                    <button
+                      onClick={() => {
+                        handleLogout();
+                        setSidebarOpen(false);
+                      }}
+                      className="group flex gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold text-red-400 hover:text-white hover:bg-red-600 w-full transition-colors duration-200"
+                    >
+                      <span className="text-lg">🚪</span>
+                      <div>Logout</div>
+                    </button>
+                  </div>
+                </div>
+              </Dialog.Panel>
+            </Transition.Child>
+          </div>
+        </Dialog>
+      </Transition.Root>
+
+      {/* Desktop Sidebar - PRESERVED with enhancements */}
+      <div className="hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex lg:w-72 lg:flex-col">
+        <div className={`flex grow flex-col gap-y-5 overflow-y-auto bg-gradient-to-b from-[#0f2027] via-[#203a43] to-[#2c5364] px-6 pb-4 transition-all duration-300 ${isTransitioning ? 'opacity-0' : 'opacity-100'}`}>
           {/* Desktop Header */}
           <div className="flex h-16 shrink-0 items-center">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#294c5b] to-[#1e3a48] flex items-center justify-center shadow-lg">
-              <span className="text-white font-bold text-xl">B</span>
+            <div className="text-white text-2xl font-bold">
+              <span className="bg-gradient-to-r from-teal-400 to-cyan-400 bg-clip-text text-transparent">B</span>
+              <span className="text-white">IDDEX</span>
             </div>
-            <h2 className="ml-3 text-2xl font-bold text-[#294c5b]">Biddex</h2>
           </div>
-          
+
+          {/* NEW: Back to Site Link - Desktop (PRESERVED) */}
+          <Link
+            to="/"
+            className="group flex gap-x-3 rounded-xl p-3 text-sm leading-6 font-semibold text-gray-300 hover:bg-gradient-to-r hover:from-[#294c5b] hover:to-[#1e3a48] hover:text-white transition-all duration-200"
+          >
+            <span className="text-lg">🌐</span>
+            <div>
+              <div>Back to Site</div>
+              <div className="text-xs text-gray-400">Return to main website</div>
+            </div>
+          </Link>
+
+          {/* NEW: Seller mode back button */}
+          {sidebarMode === 'seller' && (
+            <button
+              onClick={handleBackToBuyer}
+              className="group flex gap-x-3 rounded-xl p-3 text-sm leading-6 font-semibold text-gray-300 hover:bg-gradient-to-r hover:from-[#294c5b] hover:to-[#1e3a48] hover:text-white transition-all duration-200"
+            >
+              <span className="text-lg">←</span>
+              <div>
+                <div>Back to Buyer</div>
+                <div className="text-xs text-gray-400">Return to buyer dashboard</div>
+              </div>
+            </button>
+          )}
+
+          {/* NEW: User Info Section for Seller Mode - Desktop */}
+          {sidebarMode === 'seller' && (
+            <div className="border-b border-gray-600 pb-6">
+              <div className="flex items-center space-x-3 mb-4">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-r from-teal-400 to-cyan-400 flex items-center justify-center text-white font-bold text-lg">
+                  {user?.firstName?.charAt(0).toUpperCase() || 'U'}
+                </div>
+                <div className="flex-1">
+                  <p className="text-white font-semibold">
+                    {user?.firstName} {user?.lastName}
+                  </p>
+                  <div className="flex items-center space-x-2 mt-1">
+                    <p className="text-gray-300 text-sm">Seller</p>
+                    <TierBadge tier={sellerProfile?.tier || 'basic'} size="xs" />
+                  </div>
+                </div>
+              </div>
+
+              {/* NEW: Desktop Tier Progress - THIS IS WHAT WAS MISSING! */}
+              <div className="p-3 bg-gray-800/50 rounded-lg">
+                <div className="flex items-center justify-between text-xs text-gray-300 mb-2">
+                  <span>Progress to {sellerProfile?.tier === 'basic' ? 'Verified' : 'Trusted'}</span>
+                  <span>{sellerProfile?.stats?.completedAuctions || 0}/{sellerProfile?.tier === 'basic' ? '5' : '20'}</span>
+                </div>
+                <div className="w-full bg-gray-700 rounded-full h-2">
+                  <div 
+                    className="bg-gradient-to-r from-teal-400 to-cyan-400 h-2 rounded-full transition-all duration-300"
+                    style={{ 
+                      width: `${Math.min(100, ((sellerProfile?.stats?.completedAuctions || 0) / (sellerProfile?.tier === 'basic' ? 5 : 20)) * 100)}%` 
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Desktop Navigation Items */}
           <nav className="flex flex-1 flex-col">
             <ul role="list" className="flex flex-1 flex-col gap-y-7">
               <li>
                 <ul role="list" className="-mx-2 space-y-1">
-                  {/* ADD: Back to Site Link - Desktop */}
-                  <li className="mb-6">
-                    <Link
-                      to="/"
-                      className="group flex gap-x-3 rounded-xl p-4 text-sm leading-6 font-semibold transition-all duration-200 text-gray-700 hover:bg-gradient-to-r hover:from-[#294c5b] hover:to-[#1e3a48] hover:text-white border-b border-gray-200 pb-4"
-                    >
-                      <span className="text-xl">🏠</span>
-                      <div className="flex-1">
-                        <div className="font-medium">Back to Site</div>
-                        <div className="text-xs text-gray-500 group-hover:text-gray-200">Return to main website</div>
-                      </div>
-                    </Link>
-                  </li>
-
-                  {/* Existing Navigation Items */}
-                  {navigationItems.map((item) => (
-                    <li key={item.path}>
+                  {currentNavigationItems.map((item) => (
+                    <li key={item.name}>
                       <NavLink
                         to={`/dashboard/${item.path}`}
                         className={({ isActive }) => {
-                          const activeClasses = isActive
+                          const activeClasses = isActive || (item.path === '' && location.pathname === '/dashboard')
                             ? 'bg-gradient-to-r from-[#294c5b] to-[#1e3a48] text-white shadow-lg'
-                            : 'text-gray-700 hover:bg-gradient-to-r hover:from-[#294c5b] hover:to-[#1e3a48] hover:text-white';
-                          
+                            : 'text-gray-300 hover:bg-gradient-to-r hover:from-[#294c5b] hover:to-[#1e3a48] hover:text-white';
+
                           return `group flex gap-x-3 rounded-xl p-3 text-sm leading-6 font-semibold transition-all duration-200 ${activeClasses}`;
                         }}
                       >
                         {({ isActive }) => (
                           <>
-                            <span className="text-xl">{item.icon}</span>
+                            <span className="text-lg">{item.icon}</span>
                             <div className="flex-1">
-                              <div className="font-medium">{item.name}</div>
-                              <div className={`text-xs ${isActive ? 'text-gray-200' : 'text-gray-500'} group-hover:text-gray-200`}>
-                                {item.description}
+                              <div className="flex items-center justify-between">
+                                <span>{item.name}</span>
+                                {(item as any).badge && sidebarMode === 'seller' && sellerProfile?.tier === 'basic' && (
+                                  <span className="px-2 py-1 text-xs bg-orange-500 text-white rounded-full">
+                                    {(item as any).badge}
+                                  </span>
+                                )}
                               </div>
+                              <div className="text-xs text-gray-400">{item.description}</div>
                             </div>
                           </>
                         )}
@@ -180,30 +384,48 @@ const DashboardLayout: React.FC = () => {
                   ))}
                 </ul>
               </li>
-              
-              {/* Logout Button */}
-              <li className="mt-auto">
-                <button
-                  onClick={handleLogout}
-                  className="group -mx-2 flex w-full gap-x-3 rounded-xl p-3 text-sm font-semibold leading-6 text-red-600 hover:bg-red-50 transition-colors"
-                >
-                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" />
-                  </svg>
-                  Logout
-                </button>
-              </li>
             </ul>
           </nav>
+
+          {/* NEW: Seller mode toggle for desktop */}
+          {sidebarMode === 'buyer' && (
+            <div className="border-t border-gray-600 pt-4">
+              <NavLink
+                to="/dashboard/sell"
+                className="group flex gap-x-3 rounded-xl p-3 text-sm leading-6 font-semibold text-gray-300 hover:bg-gradient-to-r hover:from-teal-600 hover:to-cyan-600 hover:text-white transition-all duration-200"
+              >
+                <span className="text-lg">💰</span>
+                <div className="flex-1">
+                  <div className="flex items-center justify-between">
+                    <span>Start Selling</span>
+                    <TierBadge tier={sellerProfile?.tier || 'basic'} size="xs" />
+                  </div>
+                  <div className="text-xs text-gray-400">Switch to seller mode</div>
+                </div>
+              </NavLink>
+            </div>
+          )}
+
+          {/* Logout Button - Desktop */}
+          <div className="border-t border-gray-600 pt-4">
+            <button
+              onClick={handleLogout}
+              className="group flex gap-x-3 rounded-xl p-3 text-sm leading-6 font-semibold text-red-400 hover:text-white hover:bg-red-600 w-full transition-all duration-200"
+            >
+              <span className="text-lg">🚪</span>
+              <div>Logout</div>
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="md:pl-72">
+      {/* Main Content - PRESERVED */}
+      <div className="lg:pl-72">
+        {/* Mobile Header */}
         <div className="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-x-4 border-b border-gray-200 bg-white px-4 shadow-sm sm:gap-x-6 sm:px-6 lg:px-8">
           <button
             type="button"
-            className="-m-2.5 p-2.5 text-gray-700 md:hidden"
+            className="-m-2.5 p-2.5 text-gray-700 lg:hidden"
             onClick={() => setSidebarOpen(true)}
           >
             <span className="sr-only">Open sidebar</span>
@@ -212,17 +434,18 @@ const DashboardLayout: React.FC = () => {
             </svg>
           </button>
 
-          <div className="h-6 w-px bg-gray-900/10 md:hidden" aria-hidden="true" />
-
-          <div className="flex flex-1 gap-x-4 self-stretch lg:gap-x-6">
-            <div className="flex items-center gap-x-4 lg:gap-x-6">
-              <div>
-                <h1 className="text-2xl font-bold text-[#294c5b]">Welcome back, {user?.firstName}!</h1>
-                <p className="text-gray-600 text-sm">Manage your auction activities and account</p>
-              </div>
+          <div className="flex flex-1 items-center justify-between">
+            <div>
+              <h1 className="text-xl font-semibold text-gray-900">
+                Welcome back, {user?.firstName}!
+              </h1>
+              <p className="text-sm text-gray-600">
+                {sidebarMode === 'seller' ? 'Manage your listings and sales' : 'Manage your auction activities and account'}
+              </p>
             </div>
-            
+
             <div className="flex items-center gap-x-4 lg:gap-x-6">
+              {/* Notifications */}
               <button type="button" className="-m-2.5 p-2.5 text-gray-400 hover:text-gray-500">
                 <span className="sr-only">View notifications</span>
                 <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
@@ -230,24 +453,14 @@ const DashboardLayout: React.FC = () => {
                 </svg>
               </button>
 
-              <div className="hidden lg:block lg:h-6 lg:w-px lg:bg-gray-900/10" aria-hidden="true" />
-
+              {/* Profile dropdown - PRESERVED */}
               <Menu as="div" className="relative">
                 <Menu.Button className="-m-1.5 flex items-center p-1.5">
                   <span className="sr-only">Open user menu</span>
-                  <div className="w-8 h-8 bg-gradient-to-br from-[#294c5b] to-[#1e3a48] rounded-full flex items-center justify-center text-white font-semibold text-sm">
+                  <div className="h-8 w-8 rounded-full bg-gradient-to-r from-[#294c5b] to-[#1e3a48] flex items-center justify-center text-white text-sm font-medium">
                     {user?.firstName?.[0]}{user?.lastName?.[0]}
                   </div>
-                  <span className="hidden lg:flex lg:items-center">
-                    <span className="ml-4 text-sm font-semibold leading-6 text-gray-900" aria-hidden="true">
-                      {user?.firstName} {user?.lastName}
-                    </span>
-                    <svg className="ml-2 h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd" />
-                    </svg>
-                  </span>
                 </Menu.Button>
-                
                 <Transition
                   as={Fragment}
                   enter="transition ease-out duration-100"
@@ -262,7 +475,9 @@ const DashboardLayout: React.FC = () => {
                       {({ active }) => (
                         <Link
                           to="/dashboard/profile"
-                          className={`block px-3 py-1 text-sm leading-6 text-gray-900 ${active ? 'bg-gray-50' : ''}`}
+                          className={`block px-3 py-1 text-sm leading-6 text-gray-900 ${
+                            active ? 'bg-gray-50' : ''
+                          }`}
                         >
                           Your profile
                         </Link>
@@ -272,7 +487,9 @@ const DashboardLayout: React.FC = () => {
                       {({ active }) => (
                         <button
                           onClick={handleLogout}
-                          className={`block w-full px-3 py-1 text-left text-sm leading-6 text-gray-900 ${active ? 'bg-gray-50' : ''}`}
+                          className={`block w-full text-left px-3 py-1 text-sm leading-6 text-gray-900 ${
+                            active ? 'bg-gray-50' : ''
+                          }`}
                         >
                           Sign out
                         </button>
@@ -291,7 +508,7 @@ const DashboardLayout: React.FC = () => {
           </div>
         </main>
       </div>
-    </div>
+    </>
   );
 };
 

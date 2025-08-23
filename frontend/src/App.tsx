@@ -1,5 +1,6 @@
+// src/App.tsx
 import { useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { type RootState, type AppDispatch } from './store';
 import { refreshAccessToken, getCurrentUser } from './store/slices/authSlice';
@@ -21,7 +22,7 @@ import CategoryPage from './pages/category/CategoryPage';
 import AuctionDetail from './pages/auction/AuctionDetail';
 import HowItWorks from './pages/HowItWorks';
 
-// Dashboard Components
+// Dashboard Components (Existing)
 import DashboardLayout from './pages/dashboard/DashboardLayout';
 import DashboardOverview from './pages/dashboard/DashboardOverview';
 import DashboardProfile from './pages/dashboard/DashboardProfile';
@@ -33,12 +34,19 @@ import DashboardSettings from './pages/dashboard/DashboardSettings';
 import DashboardMessages from './pages/dashboard/DashboardMessages';
 import DashboardHelp from './pages/dashboard/DashboardHelp';
 
+// NEW: Seller Dashboard Components
+import SellerOverview from './pages/seller/SellerOverview';
+import CreateAuction from './pages/seller/CreateAuction';
+import MyAuctions from './pages/seller/MyAuctions';
+import SellerAnalytics from './pages/seller/SellerAnalytics';
+import SellerOrders from './pages/seller/SellerOrders';
+import SellerAcademy from './pages/seller/SellerAcademy';
+
 function App() {
-  // Fixed: Properly typed dispatch
   const dispatch = useDispatch<AppDispatch>();
   const { isAuthenticated, accessToken } = useSelector((state: RootState) => state.auth);
 
-  // Fixed: Initial auth check with proper async handling
+  // Initial auth check with proper async handling
   useEffect(() => {
     const checkAuth = async () => {
       const storedToken = localStorage.getItem('accessToken');
@@ -58,7 +66,7 @@ function App() {
     checkAuth();
   }, [dispatch, isAuthenticated]);
 
-  // Fixed: Auto-refresh with proper async handling
+  // Auto-refresh with proper async handling
   useEffect(() => {
     if (isAuthenticated && accessToken) {
       const refreshInterval = setInterval(async () => {
@@ -98,7 +106,7 @@ function App() {
             </ProtectedRoute>
           }
         >
-          {/* Dashboard nested routes */}
+          {/* Dashboard nested routes (EXISTING - PRESERVED) */}
           <Route index element={<DashboardOverview />} />
           <Route path="profile" element={<DashboardProfile />} />
           <Route path="notifications" element={<DashboardNotifications />} />
@@ -108,6 +116,14 @@ function App() {
           <Route path="settings" element={<DashboardSettings />} />
           <Route path="messages" element={<DashboardMessages />} />
           <Route path="help" element={<DashboardHelp />} />
+          
+          {/* NEW: Seller Dashboard Routes */}
+          <Route path="sell" element={<SellerOverview />} />
+          <Route path="sell/create" element={<CreateAuction />} />
+          <Route path="sell/auctions" element={<MyAuctions />} />
+          <Route path="sell/analytics" element={<SellerAnalytics />} />
+          <Route path="sell/orders" element={<SellerOrders />} />
+          <Route path="sell/academy" element={<SellerAcademy />} />
         </Route>
       </Routes>
     </Router>
