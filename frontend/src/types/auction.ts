@@ -45,6 +45,7 @@ export interface Auction {
     bidIncrement: number;
     condition: string;
     images: string[];
+    createdBy: number;
   };
   category: {
     id: number;
@@ -59,9 +60,14 @@ export interface Auction {
     slug: string;
   };
   seller: {
+    id: number;
     username: string;
     firstName: string;
     lastName: string;
+    tier: string;
+    createdAt: string;
+    totalAuctions: number;
+
   };
   bids?: Array<{
     id: number;
@@ -83,5 +89,5 @@ export interface Auction {
     seconds: number;
   };
 
-  nextMinBid?: number;
+  nextMinBid: number;
 }

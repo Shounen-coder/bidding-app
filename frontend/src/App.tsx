@@ -42,6 +42,8 @@ import SellerAnalytics from './pages/seller/SellerAnalytics';
 import SellerOrders from './pages/seller/SellerOrders';
 import SellerAcademy from './pages/seller/SellerAcademy';
 
+import SellerItemsPage from './pages/seller/SellerItemsPage';
+
 function App() {
   const dispatch = useDispatch<AppDispatch>();
   const { isAuthenticated, accessToken } = useSelector((state: RootState) => state.auth);
@@ -96,6 +98,10 @@ function App() {
           <Route path="categories/:categoryName" element={<CategoryPage />} />
           <Route path="how-it-works" element={<HowItWorks />} />
         </Route>
+
+
+  
+<Route path="/seller/:sellerId/items" element={<SellerItemsPage />} />
 
         {/* Protected dashboard routes - separate from main layout */}
         <Route

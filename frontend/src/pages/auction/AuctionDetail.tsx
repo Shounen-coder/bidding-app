@@ -64,6 +64,13 @@ const AuctionDetail: React.FC = () => {
       ? price.toLocaleString('en-US', { style: 'currency', currency: 'USD' })
       : '--';
 
+
+  // ✅ FIXED: Check if current user is the seller
+  const isSeller = user && (
+    (currentAuction.seller?.id && currentAuction.seller.id === user.id) || 
+    (currentAuction.product?.createdBy && currentAuction.product.createdBy === user.id)
+  );
+
   // Check if current user is winning bidder
   const isWinningBidder = Boolean(user && currentAuction?.currentWinnerId === user.id);
   // In your AuctionDetail component, restructure the layout like this:
@@ -152,43 +159,80 @@ return (
         />
       </div>
 
+      
+{/* {process.env.NODE_ENV === 'development' && (
+  <div style={{ 
+    background: 'yellow', 
+    padding: '10px', 
+    fontSize: '12px',
+    margin: '10px 0'
+  }}>
+    DEBUG: Passing to BidForm - auctionId: {currentAuction.id}, productId: {currentAuction.productId}
+  </div>
+)} */}
       {/* Bid Form */}
       {!isAuctionEnded ? (
-      <BidForm
-        auctionId={currentAuction.id}
-        auctionTitle={product.title}
-        currentPrice={currentPrice || product.startingPrice}
-        nextMinBid={nextMinBid || (currentPrice || product.startingPrice) + product.bidIncrement}
-        bidIncrement={product.bidIncrement}
-        isActive={status === 'active'}
-        reservePrice={product.reservePrice}
-        reserveMet={reserveMet}
-        onBidPlaced={(bidData) => {
-          setTimeout(() => {
-            dispatch(fetchAuctionById(currentAuction.id));
-          }, 5000);
-          notifySuccess(
-            'Bid Placed Successfully!',
-            `You're now the highest bidder at ${formatPrice(bidData.bid.amount)}!`,
-            [
-              {
-                label: 'View Bids',
-                action: () => {
-                  // Scroll to bid history or take other action
-                  document.getElementById('bid-history')?.scrollIntoView({ behavior: 'smooth' });
-                },
-                style: 'primary'
-              }
-            ]
-          );
-        }}
-
-      />) : (<div className="bg-gray-50 border-2 border-gray-200 rounded-xl p-6 text-center">
-    <h3 className="text-lg font-semibold text-gray-700 mb-2">Auction Has Ended</h3>
-    <p className="text-gray-600">
-      Final winning bid: <span className="font-bold text-green-600">{formatPrice(currentPrice)}</span>
-    </p>
-  </div>
+        
+    <>
+          {isSeller ? (
+            // Seller message (keep your existing design)
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 text-center">
+              <div className="flex items-center justify-center mb-4">
+                <svg className="w-12 h-12 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" 
+                    d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-semibold text-blue-800 mb-2">
+                You Cannot Bid on Your Own Auction
+              </h3>
+              <p className="text-blue-600">
+                As the seller, you cannot place bids on this auction. You can monitor the bidding activity below.
+              </p>
+              <div className="mt-4 p-4 bg-white rounded border">
+                <p className="text-sm text-gray-600">
+                  <strong>Current Bid:</strong> {formatPrice(currentPrice)} 
+                  <span className="ml-4">
+                    <strong>Total Bids:</strong> {totalBids}
+                  </span>
+                </p>
+              </div>
+            </div>
+          ) : (
+            // BidForm for non-sellers
+            <BidForm
+              auctionId={currentAuction.id}
+              auctionTitle={product.title}
+              currentPrice={currentPrice || product.startingPrice}
+              nextMinBid={nextMinBid}
+              bidIncrement={product.bidIncrement}
+              isActive={status === 'active'}
+              reservePrice={product.reservePrice}
+              reserveMet={reserveMet}
+              onBidPlaced={(bidData) => {
+                setTimeout(() => {
+                  dispatch(fetchAuctionById(currentAuction.id));
+                }, 5000);
+                
+                // ✅ FIXED: Remove the problematic action object
+                notifySuccess(
+                  'Bid Placed Successfully!',
+                  `You're now the highest bidder at ${formatPrice(bidData.bid.amount)}!`
+                  // Remove the action object that was causing the error
+                );
+              }}
+            />
+          )}
+        </>
+      ) : (
+        // Auction ended
+        <div className="bg-gray-100 border border-gray-300 rounded-lg p-6 text-center">
+          <h3 className="text-xl font-semibold text-gray-800 mb-2">Auction Has Ended</h3>
+          <p className="text-gray-600 mb-4">Bidding is no longer available</p>
+          <p className="text-lg font-semibold">
+            Final winning bid: {formatPrice(currentPrice)}
+          </p>
+        </div>
       )}
 
       {/* Enhanced Live Bid History */}
@@ -230,7 +274,19 @@ return (
           status={status}
         />
         
-        <SellerProfile seller={seller} />
+        {/* Enhanced Seller Profile Section */}
+<div className="mt-8">
+  <SellerProfile
+    seller={{
+      ...seller,
+      id: seller.id || product.createdBy, // Use seller.id or fallback to product.createdBy
+    }}
+    memberSince={seller.createdAt ? new Date(seller.createdAt).getFullYear().toString() : undefined}
+    totalSales={seller.totalAuctions || 0}
+    responseTime="< 1 hour"
+    reviewsCount={0} // TODO: Implement reviews system later
+  />
+</div>
 
         {/* Quick Stats Card */}
         <div className="bg-gradient-to-br from-gray-50 to-blue-50 rounded-xl border border-gray-200 p-6">
@@ -244,12 +300,12 @@ return (
               <span className="text-gray-600">Views</span>
               <span className="font-semibold text-gray-900">247</span>
             </div>
-            <div className="flex justify-between items-center">
+            {/* <div className="flex justify-between items-center">
               <span className="text-gray-600">Time Left</span>
               <span className="font-semibold text-blue-600">
                 {timeRemaining ? `${timeRemaining.days}d ${timeRemaining.hours}h` : 'Ended'}
               </span>
-            </div>
+            </div> */}
           </div>
         </div>
       </div>

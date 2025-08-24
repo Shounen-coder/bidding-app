@@ -68,6 +68,7 @@ const getAllAuctions = async (req, res) => {
 const getAuctionById = async (req, res) => {
   try {
     const { id } = req.params;
+    console.log('🔍 Controller received auction ID:', id); // Add debug
 
     if (!id || isNaN(parseInt(id))) {
       return res.status(400).json({
@@ -79,12 +80,14 @@ const getAuctionById = async (req, res) => {
     const auction = await Auction.findByIdWithDetails(parseInt(id));
 
     if (!auction) {
+       console.log('❌ Auction not found for ID:', id); // Add debug
       return res.status(404).json({
         success: false,
         message: 'Auction not found'
       });
     }
 
+    console.log('✅ Returning auction:', auction.product?.title); // Add debug
     res.json({
       success: true,
       data: {

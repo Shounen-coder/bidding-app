@@ -74,7 +74,7 @@ const DashboardLayout: React.FC = () => {
       setSidebarMode('buyer');
       navigate('/dashboard');
       setIsTransitioning(false);
-    }, 100);
+    }, 200);
   };
 
   const currentNavigationItems = sidebarMode === 'seller' ? sellerNavigationItems : navigationItems;

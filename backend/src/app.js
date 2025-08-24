@@ -13,6 +13,7 @@ const authRoutes = require('./routes/authRoutes');
 const userRoutes = require('./routes/userRoutes');
 const auctionRoutes = require('./routes/auctionRoutes');
 const adminRoutes = require('./routes/adminRoutes');
+const sellerRoutes = require('./routes/sellerRoutes');
 
 
 //import middlewares
@@ -91,6 +92,7 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/auctions', auctionRoutes);
+app.use('/api/seller', sellerRoutes);
 
 // 404 handler
 app.use('*', (req, res) => {
