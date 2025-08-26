@@ -84,7 +84,7 @@ const CategoryIndex: React.FC = () => {
           {sortedCategories.map((category) => (
             <Link
               key={category.id}
-              to={`/category/${category.slug}`}
+              to={`/categories/${category.slug}`}
               className="group"
             >
               <div className="bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-200 p-6 border-2 border-transparent hover:border-blue-200 h-full">

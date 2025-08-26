@@ -7,6 +7,7 @@ import { logoutUser } from '../../store/slices/authSlice';
 import { type RootState, type AppDispatch } from '../../store';
 import TierBadge from '../seller/TierBadge'; // NEW: Import TierBadge
 
+
 const Header: React.FC = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const location = useLocation();

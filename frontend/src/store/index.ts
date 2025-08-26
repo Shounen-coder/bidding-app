@@ -4,6 +4,7 @@ import categorySlice from './slices/categorySlice';
 import auctionSlice from './slices/auctionSlice';
 import profileSlice from './slices/profileSlice';
 import sellerSlice from './slices/sellerSlice';
+import orderSlice from './slices/orderSlice';
 
 export const store = configureStore({
   reducer: {
@@ -12,6 +13,7 @@ export const store = configureStore({
     seller: sellerSlice,
     profile: profileSlice,
     auctions: auctionSlice,
+    orders: orderSlice,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

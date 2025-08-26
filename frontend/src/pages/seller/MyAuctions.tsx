@@ -3,12 +3,97 @@ import React, { useEffect, useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { Link, useSearchParams } from 'react-router-dom';
 import { type RootState, type AppDispatch } from '../../store';
-import { fetchSellerAuctions, setFilters } from '../../store/slices/sellerSlice';
+import { fetchSellerAuctions, setFilters, deleteSellerAuction } from '../../store/slices/sellerSlice';
 
 const MyAuctions: React.FC = () => {
+
+
+   // New: Track deleting
+  const [deletingId, setDeletingId] = useState<number | null>(null);
+
+  // New: Delete handler
+  const handleDelete = async (id: number) => {
+    if (!window.confirm('Are you sure you want to delete this auction? This action cannot be undone.')) return;
+    setDeletingId(id);
+    try {
+      await dispatch(deleteSellerAuction(id)).unwrap();
+      // Optionally show a toast/alert here
+    } catch (err) {
+      alert('Failed to delete auction.');
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+
+  // Add this helper function near the top of your MyAuctions component
+  const getDisplayStatus = (auction: any) => {
+    const now = new Date();
+    const endTime = new Date(auction.endTime);
+
+    // ✅ Same logic as BidStatusIndicators
+    const isAuctionEnded =
+      auction.status === 'ended' ||
+      auction.status === 'complete' ||
+      auction.status === 'finished' ||
+      endTime <= now;
+
+    if (isAuctionEnded) {
+      return 'ended';
+    }
+
+    if (auction.status === 'scheduled') {
+      return 'scheduled';
+    }
+
+    if (auction.status === 'active') {
+      const timeDiff = endTime.getTime() - now.getTime();
+      const hoursRemaining = timeDiff / (1000 * 60 * 60);
+
+      // Ending soon if less than 1 hour remaining
+      if (hoursRemaining < 1 && hoursRemaining > 0) {
+        return 'ending_soon';
+      }
+      return 'active';
+    }
+
+    return auction.status;
+  };
+
+  // ✅ Status styling helper
+  const getStatusConfig = (status: string) => {
+    switch (status) {
+      case 'active':
+        return {
+          text: 'LIVE',
+          className: 'bg-gradient-to-r from-emerald-500 to-green-500 text-white'
+        };
+      case 'ending_soon':
+        return {
+          text: 'ENDING SOON',
+          className: 'bg-gradient-to-r from-red-500 to-orange-500 text-white animate-pulse'
+        };
+      case 'ended':
+        return {
+          text: 'ENDED',
+          className: 'bg-gradient-to-r from-slate-500 to-slate-600 text-white'
+        };
+      case 'scheduled':
+        return {
+          text: 'SCHEDULED',
+          className: 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white'
+        };
+      default:
+        return {
+          text: status.toUpperCase(),
+          className: 'bg-gray-500 text-white'
+        };
+    }
+  };
+
   const dispatch = useDispatch<AppDispatch>();
   const [searchParams] = useSearchParams();
-  
+
   const {
     auctions = [], // Add default empty array
     auctionsPagination = { page: 1, limit: 10, total: 0, pages: 0 }, // Add default pagination
@@ -20,42 +105,39 @@ const MyAuctions: React.FC = () => {
   const [selectedStatus, setSelectedStatus] = useState(filters.status || 'all');
 
   // Update MyAuctions.tsx useEffect:
-useEffect(() => {
-  // Always fetch auctions when component mounts or when coming from creation
-  console.log('MyAuctions mounted, fetching auctions with status...', selectedStatus);
-  dispatch(fetchSellerAuctions({
-    status: selectedStatus,
-    page: 1,
-    limit: 10
-  }));
-  
-  if (searchParams.get('created') === 'true') {
-    console.log('Auction created successfully!');
-    // you can add toastNotifications later
-  }
-}, [dispatch, selectedStatus, searchParams]); // Add searchParams as dependency
-
-// Keep existing useEffect for status changes
-useEffect(() => {
-  if (!searchParams.get('created')) { // Only fetch if not coming from creation
+  useEffect(() => {
+    // Always fetch auctions when component mounts or when coming from creation
+    console.log('MyAuctions mounted, fetching auctions with status...', selectedStatus);
     dispatch(fetchSellerAuctions({
       status: selectedStatus,
-      page: auctionsPagination?.page || 1,
-      limit: auctionsPagination?.limit || 10
+      page: 1,
+      limit: 10
     }));
-  }
-}, [dispatch, selectedStatus]);
 
-// In MyAuctions.tsx, add debug logs:
-useEffect(() => {
-  console.log('🔍 MyAuctions - Current auctions:', auctions);
-  console.log('🔍 MyAuctions - Auctions length:', auctions?.length);
-  console.log('🔍 MyAuctions - isLoading:', isLoading);
-  console.log('🔍 MyAuctions - error:', error);
-}, [auctions, isLoading, error]);
+    if (searchParams.get('created') === 'true') {
+      console.log('Auction created successfully!');
+      // you can add toastNotifications later
+    }
+  }, [dispatch, selectedStatus, searchParams]); // Add searchParams as dependency
 
+  // Keep existing useEffect for status changes
+  useEffect(() => {
+    if (!searchParams.get('created')) { // Only fetch if not coming from creation
+      dispatch(fetchSellerAuctions({
+        status: selectedStatus,
+        page: auctionsPagination?.page || 1,
+        limit: auctionsPagination?.limit || 10
+      }));
+    }
+  }, [dispatch, selectedStatus]);
 
-
+  // In MyAuctions.tsx, add debug logs:
+  useEffect(() => {
+    console.log('🔍 MyAuctions - Current auctions:', auctions);
+    console.log('🔍 MyAuctions - Auctions length:', auctions?.length);
+    console.log('🔍 MyAuctions - isLoading:', isLoading);
+    console.log('🔍 MyAuctions - error:', error);
+  }, [auctions, isLoading, error]);
 
   const handleStatusFilter = (status: string) => {
     setSelectedStatus(status);
@@ -85,12 +167,12 @@ useEffect(() => {
     const end = new Date(endTime);
     const now = new Date();
     const diff = end.getTime() - now.getTime();
-    
+
     if (diff <= 0) return 'Ended';
-    
+
     const days = Math.floor(diff / (1000 * 60 * 60 * 24));
     const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-    
+
     if (days > 0) return `${days}d ${hours}h left`;
     if (hours > 0) return `${hours}h left`;
     return 'Less than 1h left';
@@ -164,7 +246,7 @@ useEffect(() => {
           </div>
           <h3 className="text-lg font-semibold text-gray-900 mb-2">No auctions found</h3>
           <p className="text-gray-600 mb-6">
-            {selectedStatus === 'all' 
+            {selectedStatus === 'all'
               ? "You haven't created any auctions yet."
               : `No ${selectedStatus} auctions found.`
             }
@@ -191,93 +273,105 @@ useEffect(() => {
 
           {/* Table Body */}
           <div className="divide-y divide-gray-200">
-            {auctions.map((auction) => (
-              
-              <div key={auction.id} className="grid grid-cols-12 gap-4 px-6 py-4 hover:bg-gray-50">
-                {/* Item */}
-                <div className="col-span-4">
-                  <div className="flex items-center space-x-3">
-                    {auction.product?.images && auction.product.images.length > 0 ? (
-                      <img
-                        src={auction.product.images[0]}
-                        alt={auction.product?.title || 'Auction item'}
-                        className="w-12 h-12 object-cover rounded-lg border border-gray-200"
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).src = 'https://via.placeholder.com/48x48?text=No+Image';
-                        }}
-                      />
-                    ) : (
-                      <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
-                        <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                        </svg>
+            {auctions.map((auction) => {
+              // ✅ Use fixed logic for status
+              const displayStatus = getDisplayStatus(auction);
+              const statusConfig = getStatusConfig(displayStatus);
+
+              return (
+                <div key={auction.id} className="grid grid-cols-12 gap-4 px-6 py-4 hover:bg-gray-50">
+                  {/* Item */}
+                  <div className="col-span-4">
+                    <div className="flex items-center space-x-3">
+                      {auction.product?.images && auction.product.images.length > 0 ? (
+                        <img
+                          src={auction.product.images[0]}
+                          alt={auction.product?.title || 'Auction item'}
+                          className="w-12 h-12 object-cover rounded-lg border border-gray-200"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = 'https://via.placeholder.com/48x48?text=No+Image';
+                          }}
+                        />
+                      ) : (
+                        <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
+                          <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                          </svg>
+                        </div>
+                      )}
+                      <div>
+                        <p className="text-sm font-medium text-gray-900 truncate max-w-xs">
+                          {auction.product?.title || 'Untitled'}
+                        </p>
+                        <p className="text-xs text-gray-500">{auction.category?.name || 'No category'}</p>
                       </div>
-                    )}
+                    </div>
+                  </div>
+
+                  {/* Current Price */}
+                  <div className="col-span-2 flex items-center">
                     <div>
-                      <p className="text-sm font-medium text-gray-900 truncate max-w-xs">
-                        {auction.product?.title || 'Untitled'}
+                      <p className="text-sm font-semibold text-gray-900">
+                        ${auction.currentPrice || auction.startingPrice || 0}
                       </p>
-                      <p className="text-xs text-gray-500">{auction.category?.name || 'No category'}</p>
+                      <p className="text-xs text-gray-500">
+                        Start: ${auction.startingPrice || 0}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Bids */}
+                  <div className="col-span-1 flex items-center">
+                    <p className="text-sm text-gray-900">{auction.totalBids ?? 0}</p>
+                  </div>
+
+                  {/* Views */}
+                  <div className="col-span-1 flex items-center">
+                    <p className="text-sm text-gray-900">{auction.viewCount ?? 0}</p>
+                  </div>
+
+                  {/* Time Left */}
+                  <div className="col-span-2 flex items-center">
+                    <p className="text-sm text-gray-900">
+                      {auction.endTime ? getTimeRemaining(auction.endTime) : 'No end time'}
+                    </p>
+                  </div>
+
+                  {/* Status */}
+                  <div className="col-span-1 flex items-center">
+                    <span className={`px-2 py-1 text-xs rounded-full ${statusConfig.className}`}>
+                      {statusConfig.text}
+                    </span>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="col-span-1 flex items-center">
+                    <div className="flex space-x-2">
+                      <Link
+                        to={`/auctions/${auction.id}`}
+                        className="text-teal-600 hover:text-teal-700 text-sm font-medium"
+                        onClick={() => console.log('🔗 Clicking view for auction ID:', auction.id)}
+                      >
+                        View
+                      </Link>
+                      {auction.status === 'draft' && (
+                        <button className="text-blue-600 hover:text-blue-700 text-sm font-medium">
+                          Edit
+                        </button>
+                      )}
+                      {/* ✅ NEW: Delete Button (for draft OR any status you desire) */}
+      <button
+        className="text-red-600 hover:text-red-700 text-sm font-medium"
+        disabled={deletingId === auction.id}
+        onClick={() => handleDelete(auction.id)}
+      >
+        {deletingId === auction.id ? 'Deleting...' : 'Delete'}
+      </button>
                     </div>
                   </div>
                 </div>
-
-                {/* Current Price */}
-                <div className="col-span-2 flex items-center">
-                  <div>
-                    <p className="text-sm font-semibold text-gray-900">
-                      ${auction.currentPrice || auction.startingPrice || 0}
-                    </p>
-                    <p className="text-xs text-gray-500">
-                
-                      Start: ${auction.startingPrice || 0}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Bids */}
-                <div className="col-span-1 flex items-center">
-                  <p className="text-sm text-gray-900">{auction.totalBids ?? 0}</p>
-                </div>
-
-                {/* Views */}
-                <div className="col-span-1 flex items-center">
-                  <p className="text-sm text-gray-900">{auction.viewCount ?? 0}</p>
-                </div>
-
-                {/* Time Left */}
-                <div className="col-span-2 flex items-center">
-                  <p className="text-sm text-gray-900">
-                    {auction.endTime ? getTimeRemaining(auction.endTime) : 'No end time'}
-                  </p>
-                </div>
-
-                {/* Status */}
-                <div className="col-span-1 flex items-center">
-                  <span className={`px-2 py-1 text-xs rounded-full ${getStatusColor(auction.status || 'draft')}`}>
-                    {auction.status || 'draft'}
-                  </span>
-                </div>
-
-                {/* Actions */}
-                <div className="col-span-1 flex items-center">
-                  <div className="flex space-x-2">
-                    <Link
-                      to={`/auctions/${auction.id}`}
-                      className="text-teal-600 hover:text-teal-700 text-sm font-medium"
-                      onClick={() => console.log('🔗 Clicking view for auction ID:', auction.id)} // Add debug
-                    >
-                      View
-                    </Link>
-                    {auction.status === 'draft' && (
-                      <button className="text-blue-600 hover:text-blue-700 text-sm font-medium">
-                        Edit
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           {/* Pagination */}

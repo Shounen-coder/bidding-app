@@ -3,6 +3,7 @@ import { useSelector } from 'react-redux';
 import { type RootState } from '../../store';
 
 
+
 interface Bid {
   id: number;
   amount: number;
@@ -17,6 +18,7 @@ interface Bid {
 }
 
 
+
 interface LiveBidHistoryProps {
   auctionId: number;
   initialBids: Bid[];
@@ -24,6 +26,7 @@ interface LiveBidHistoryProps {
   auctionStatus: string;
   currentPrice?: number; // ✅ ADD this prop
 }
+
 
 
 const LiveBidHistory: React.FC<LiveBidHistoryProps> = ({
@@ -39,9 +42,11 @@ const LiveBidHistory: React.FC<LiveBidHistoryProps> = ({
   const [newBidNotification, setNewBidNotification] = useState<string | null>(null);
 
 
+
   useEffect(() => {
     setIsPolling(auctionStatus === 'active');
   }, [auctionStatus]);
+
 
 
   // Get current user from auth state (if available)
@@ -49,13 +54,16 @@ const LiveBidHistory: React.FC<LiveBidHistoryProps> = ({
   const userId = currentUserId || user?.id;
 
 
+
   const formatPrice = (price: number) =>
     price.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+
 
 
   // Poll for new bids
   useEffect(() => {
     if (!isPolling) return;
+
 
 
     const pollBids = async () => {
@@ -65,10 +73,12 @@ const LiveBidHistory: React.FC<LiveBidHistoryProps> = ({
         const response = await fetch(`/api/auctions/${auctionId}/bids?since=${lastUpdate}`);
 
 
+
         if (!response.ok) {
           console.error(`HTTP error! status: ${response.status}`);
           return;
         }
+
 
 
         const contentType = response.headers.get('content-type');
@@ -78,13 +88,16 @@ const LiveBidHistory: React.FC<LiveBidHistoryProps> = ({
         }
 
 
+
         const data = await response.json();
         console.log('Poll response:', data);
+
 
 
         if (data.success && data.data.bids.length > 0) {
           setBids(prevBids => [...data.data.bids, ...prevBids]);
           setLastUpdate(data.data.timestamp);
+
 
 
           const latestBid = data.data.bids[0];
@@ -97,9 +110,11 @@ const LiveBidHistory: React.FC<LiveBidHistoryProps> = ({
     };
 
 
+
     const interval = setInterval(pollBids, 3000);
     return () => clearInterval(interval);
   }, [auctionId, lastUpdate, isPolling]);
+
 
 
   useEffect(() => {
@@ -107,9 +122,11 @@ const LiveBidHistory: React.FC<LiveBidHistoryProps> = ({
   }, []);
 
 
+
   const isUserBid = (bid: Bid) => {
     return userId && bid.bidder.username === user?.username;
   };
+
 
 
   // ✅ FIX: Function to determine correct bid status
@@ -121,6 +138,7 @@ const LiveBidHistory: React.FC<LiveBidHistoryProps> = ({
     const isCurrentUserBid = isUserBid(bid);
 
 
+
     if (isWinningBid) {
       return 'Winning';
     } else if (isCurrentUserBid) {
@@ -128,6 +146,7 @@ const LiveBidHistory: React.FC<LiveBidHistoryProps> = ({
     }
     return '';
   };
+
 
 
   return (
@@ -142,6 +161,7 @@ const LiveBidHistory: React.FC<LiveBidHistoryProps> = ({
           </div>
         </div>
       )}
+
 
 
       <div className="flex items-center justify-between mb-6">
@@ -171,6 +191,7 @@ const LiveBidHistory: React.FC<LiveBidHistoryProps> = ({
       </div>
 
 
+
       <div className="space-y-4 max-h-96 overflow-y-auto pr-2 custom-scrollbar">
         {bids && bids.length > 0 ? (
           bids.map((bid, index) => {
@@ -179,10 +200,11 @@ const LiveBidHistory: React.FC<LiveBidHistoryProps> = ({
             const isCurrentUserBid = isUserBid(bid);
 
 
+
             return (
               <div
                 key={bid.id}
-                className={`bg-white rounded-xl shadow-lg border-l-4 transition-all duration-300 hover:shadow-xl hover:scale-102 ${
+                className={`bg-white rounded-xl shadow-lg border-l-4 transition-all duration-300 hover:shadow-xl ${
                   isCurrentUserBid 
                     ? 'border-teal-400 bg-gradient-to-r from-teal-50 to-cyan-50' 
                     : 'border-slate-200 hover:border-slate-300'
@@ -218,9 +240,11 @@ const LiveBidHistory: React.FC<LiveBidHistoryProps> = ({
                       </div>
 
 
+
                       <div className="text-3xl font-bold bg-gradient-to-r from-emerald-600 to-green-600 bg-clip-text text-transparent mb-3">
                         {formatPrice(bid.amount)}
                       </div>
+
 
 
                       {/* ✅ FIXED: Only show winning bid badge for actual highest bidder */}
@@ -234,12 +258,14 @@ const LiveBidHistory: React.FC<LiveBidHistoryProps> = ({
                       )}
 
 
+
                       <div className="flex items-center text-sm text-slate-500 mb-3">
                         <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                         {new Date(bid.bidTime).toLocaleString()}
                       </div>
+
 
 
                       {bid.isAutoBid && (
@@ -251,6 +277,7 @@ const LiveBidHistory: React.FC<LiveBidHistoryProps> = ({
                         </span>
                       )}
                     </div>
+
 
 
                     <div className="flex flex-col items-end gap-2">
@@ -291,6 +318,7 @@ const LiveBidHistory: React.FC<LiveBidHistoryProps> = ({
         )}
       </div>
 
+
       {/* Custom Scrollbar Styles */}
       <style>{`
         .custom-scrollbar::-webkit-scrollbar {
@@ -307,13 +335,11 @@ const LiveBidHistory: React.FC<LiveBidHistoryProps> = ({
         .custom-scrollbar::-webkit-scrollbar-thumb:hover {
           background: linear-gradient(to bottom, #0f766e, #0891b2);
         }
-        .hover\\:scale-102:hover {
-          transform: scale(1.02);
-        }
       `}</style>
     </div>
   );
 };
+
 
 
 export default LiveBidHistory;

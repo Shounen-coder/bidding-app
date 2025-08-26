@@ -23,6 +23,10 @@ router.delete('/:id/watchlist', authenticateToken, auctionController.removeFromW
 router.get('/:id/watchlist/status', authenticateToken, statusCheckRateLimit, auctionController.checkWatchlistStatus);
 router.get('/user/watchlist', authenticateToken, auctionController.getUserWatchlist);
 
+// Add this line where your other routes are defined
+router.post('/auctions/:id/view', authenticateToken, auctionController.trackAuctionView);
+
+
 // Admin/Seller routes (permission-based) - Ready for future implementation
 // router.post('/', authenticateToken, requirePermission(['auctions.create']), auctionController.createAuction);
 // router.put('/:id', authenticateToken, requirePermission(['auctions.update']), auctionController.updateAuction);

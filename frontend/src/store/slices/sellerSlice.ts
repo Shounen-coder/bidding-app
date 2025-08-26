@@ -1,6 +1,7 @@
 // src/store/slices/sellerSlice.ts (Enhanced version)
 import { createSlice, createAsyncThunk, type PayloadAction } from '@reduxjs/toolkit';
 import sellerService from '../../services/sellerService';
+import type { SellerAnalytics } from '../../types/sellerAnalytics';
 
 // Types
 export interface SellerStats {
@@ -103,7 +104,8 @@ interface SellerState {
   currentTier: TierRequirement | null;
   nextTier: TierRequirement | null;
   progress: TierProgress | null;
-  
+
+  // analytics: SellerAnalytics | null;
   // Auctions data
   auctions: SellerAuction[];
   auctionsPagination: {
@@ -111,30 +113,14 @@ interface SellerState {
     limit: number;
     total: number;
     pages: number;
+
   };
   
   // Categories for auction creation
   categories: Category[];
   
   // Analytics data
-  analytics: {
-    summary: {
-      total_auctions: number;
-      total_views: number;
-      avg_views_per_auction: number;
-      total_watchers: number;
-      unique_bidders: number;
-    };
-    analytics: Array<{
-      date: string;
-      views: number;
-      watchers: number;
-      bids: number;
-      unique_viewers: number;
-    }>;
-  } | null;
-  
-  // Earnings data (mock)
+  analytics: SellerAnalytics | null;
   earnings: {
     earnings: Array<{
       id: number;
@@ -154,8 +140,6 @@ interface SellerState {
       on_hold_amount: number;
     };
   } | null;
-  
-  // UI state
   isLoading: boolean;
   error: string | null;
   filters: {
@@ -268,17 +252,23 @@ export const createAuction = createAsyncThunk(
   }
 );
 
-export const fetchAnalytics = createAsyncThunk(
+// ✅ FIXED: Proper async thunk with correct types
+/// ✅ FIXED: fetchAnalytics thunk with proper typing
+export const fetchAnalytics = createAsyncThunk<SellerAnalytics, number | undefined, { rejectValue: string }>(
   'seller/fetchAnalytics',
   async (days: number = 30, { rejectWithValue }) => {
     try {
-      const response = await sellerService.getAnalytics(days);
-      return response.data;
+      console.log('🚀 Redux: Fetching analytics for', days, 'days');
+      const analyticsData = await sellerService.getAnalytics(days);
+      console.log('✅ Redux: Received analytics data:', analyticsData);
+      return analyticsData; // This is already unwrapped by the service
     } catch (error: any) {
+      console.error('❌ Redux: Analytics fetch failed:', error);
       return rejectWithValue(error.response?.data?.message || 'Failed to fetch analytics');
     }
   }
 );
+
 
 export const fetchEarnings = createAsyncThunk(
   'seller/fetchEarnings',
@@ -291,6 +281,21 @@ export const fetchEarnings = createAsyncThunk(
     }
   }
 );
+
+
+
+export const deleteSellerAuction = createAsyncThunk(
+  'seller/deleteAuction',
+  async (auctionId: number, { rejectWithValue }) => {
+    try {
+      await sellerService.deleteAuction(auctionId);
+      return auctionId;
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.message || 'Failed to delete auction');
+    }
+  }
+);
+
 
 // Slice
 const sellerSlice = createSlice({
@@ -377,15 +382,31 @@ const sellerSlice = createSlice({
         state.error = action.payload as string;
       })
       
-    // Fetch analytics
-      .addCase(fetchAnalytics.fulfilled, (state, action) => {
-        state.analytics = action.payload;
-      })
-      
-    // Fetch earnings
-      .addCase(fetchEarnings.fulfilled, (state, action) => {
-        state.earnings = action.payload;
-      });
+    // // Fetch analytics
+    //   .addCase(fetchAnalytics.fulfilled, (state, action) => {
+    //     state.analytics = action.payload;
+    //   })
+    //✅ FIXED: Reducer that handles the unwrapped data
+.addCase(fetchAnalytics.pending, (state) => {
+  console.log('⏳ Redux: Analytics loading...');
+  state.isLoading = true;
+  state.error = null;
+})
+.addCase(fetchAnalytics.fulfilled, (state, action) => {
+  console.log('✅ Redux: Analytics loaded successfully:', action.payload);
+  state.isLoading = false;
+  state.analytics = action.payload; // Now contains { tier, totalAuctions, ... } directly
+  state.error = null;
+})
+.addCase(fetchAnalytics.rejected, (state, action) => {
+  console.log('❌ Redux: Analytics failed:', action.payload);
+  state.isLoading = false;
+  state.error = action.payload as string;
+})
+// ✅ FIXED: Remove unused action parameter
+.addCase(fetchEarnings.fulfilled, (state, action) => {
+  state.earnings = action.payload;
+});
   }
 });
 

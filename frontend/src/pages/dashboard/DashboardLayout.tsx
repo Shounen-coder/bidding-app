@@ -6,6 +6,7 @@ import { Dialog, Transition, Menu } from '@headlessui/react';
 import type { AppDispatch, RootState } from '../../store';
 import { logoutUser } from '../../store/slices/authSlice';
 import TierBadge from '../../components/seller/TierBadge';
+import { fetchSellerProfile } from '../../store/slices/sellerSlice';
 
 // PRESERVED: Your existing navigation items
 const navigationItems = [
@@ -40,9 +41,18 @@ const DashboardLayout: React.FC = () => {
   const { profile: sellerProfile } = useSelector((state: RootState) => state.seller || { 
     profile: { tier: 'basic', stats: { completedAuctions: 0 } } 
   });
+
+  
   
   const navigate = useNavigate();
   const location = useLocation();
+
+  // ✅ ADD THIS USEEFFECT - Load seller profile
+  useEffect(() => {
+    if (user && !sellerProfile) {
+      dispatch(fetchSellerProfile());
+    }
+  }, [user, sellerProfile, dispatch]);
 
   // Determine sidebar mode based on current route
   useEffect(() => {
@@ -80,6 +90,17 @@ const DashboardLayout: React.FC = () => {
   const currentNavigationItems = sidebarMode === 'seller' ? sellerNavigationItems : navigationItems;
   const sidebarTitle = sidebarMode === 'seller' ? 'Seller Dashboard' : 'Dashboard';
   const headerTitle = sidebarMode === 'seller' ? 'Seller Hub' : 'Dashboard';
+
+  // --- Tier progress logic: drop this in your component function, before return
+const getTierProgressInfo = () => {
+  const tier = sellerProfile?.tier || 'basic';
+  const completed = sellerProfile?.stats?.completedAuctions || 0;
+  if (tier === 'basic') return { nextTier: 'Verified', needed: 5, completed };
+  if (tier === 'verified') return { nextTier: 'Trusted', needed: 20, completed };
+  return { nextTier: 'Max Tier Reached', needed: 20, completed };
+};
+const progress = getTierProgressInfo();
+
 
   return (
     <>
@@ -178,8 +199,11 @@ const DashboardLayout: React.FC = () => {
                       {/* NEW: Mobile Tier Progress */}
                       <div className="p-3 bg-gray-800/50 rounded-lg">
                         <div className="flex items-center justify-between text-xs text-gray-300 mb-2">
-                          <span>Progress to {sellerProfile?.tier === 'basic' ? 'Verified' : 'Trusted'}</span>
-                          <span>{sellerProfile?.stats?.completedAuctions || 0}/{sellerProfile?.tier === 'basic' ? '5' : '20'}</span>
+                          <span>
+                            
+                            Progress to {progress.nextTier} {progress.completed}/{progress.needed}
+                            </span>
+
                         </div>
                         <div className="w-full bg-gray-700 rounded-full h-2">
                           <div 
@@ -331,8 +355,11 @@ const DashboardLayout: React.FC = () => {
               {/* NEW: Desktop Tier Progress - THIS IS WHAT WAS MISSING! */}
               <div className="p-3 bg-gray-800/50 rounded-lg">
                 <div className="flex items-center justify-between text-xs text-gray-300 mb-2">
-                  <span>Progress to {sellerProfile?.tier === 'basic' ? 'Verified' : 'Trusted'}</span>
-                  <span>{sellerProfile?.stats?.completedAuctions || 0}/{sellerProfile?.tier === 'basic' ? '5' : '20'}</span>
+                  <span>
+                    Progress to {progress.nextTier}
+                    <br />
+                    {progress.completed}/{progress.needed}
+                  </span>
                 </div>
                 <div className="w-full bg-gray-700 rounded-full h-2">
                   <div 

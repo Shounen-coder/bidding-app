@@ -351,24 +351,125 @@ exports.getSellerAuctions = async (req, res) => {
 };
 
 // Get seller analytics
+// Get seller analytics dashboard
 exports.getAnalytics = async (req, res) => {
   try {
     const sellerId = req.user.id;
-    const { days = 30 } = req.query;
-    
-    const analyticsData = await SellerProfile.getAnalytics(sellerId, days);
-    
+    const days = parseInt(req.query.days) || 30;
+
+    console.log('🔍 Analytics request for user:', sellerId, 'days:', days);
+
+    const sellerProfile = await SellerProfile.getOrCreateProfile(sellerId);
+    if (!sellerProfile) {
+      return res.status(404).json({
+        success: false,
+        message: 'Seller profile not found'
+      });
+    }
+
+    // ✅ FIXED: Get real analytics data with correct joins
+    const analyticsQuery = `
+      SELECT 
+        DATE(a.created_at) as date,
+        COALESCE(SUM(a.view_count), 0) as views,
+        COALESCE(COUNT(DISTINCT b.id), 0) as bids,
+        COUNT(CASE WHEN a.status = 'ended' AND a.current_price > a.starting_price THEN 1 END) as sales,
+        COALESCE(COUNT(DISTINCT auv.user_id), 0) as unique_viewers
+      FROM auctions a
+      JOIN products p ON a.product_id = p.id
+      LEFT JOIN bids b ON a.id = b.auction_id
+      LEFT JOIN auction_unique_views auv ON a.id = auv.auction_id
+      WHERE p.created_by = $1 
+        AND a.created_at >= NOW() - INTERVAL '${days} days'
+      GROUP BY DATE(a.created_at)
+      ORDER BY date DESC
+    `;
+
+    const analyticsResult = await pool.query(analyticsQuery, [sellerId]);
+
+    // ✅ FIXED: Get real totals with correct queries
+    const totalAuctions = await pool.query(
+      'SELECT COUNT(*) as count FROM auctions a JOIN products p ON a.product_id = p.id WHERE p.created_by = $1',
+      [sellerId]
+    );
+
+    // ✅ FIXED: Get real unique view count
+    const totalViews = await pool.query(`
+      SELECT COALESCE(SUM(a.view_count), 0) as total 
+      FROM auctions a
+      JOIN products p ON a.product_id = p.id
+      WHERE p.created_by = $1
+    `, [sellerId]);
+
+    // ✅ FIXED: Get real bid count
+    const totalBids = await pool.query(`
+      SELECT COUNT(*) as total 
+      FROM bids b
+      JOIN auctions a ON b.auction_id = a.id
+      JOIN products p ON a.product_id = p.id
+      WHERE p.created_by = $1
+    `, [sellerId]);
+
+    // ✅ FIXED: Better sales calculation
+    const salesData = await pool.query(`
+      SELECT 
+        COUNT(*) as sales_count, 
+        COALESCE(AVG(a.current_price), 0) as avg_price 
+      FROM auctions a 
+      JOIN products p ON a.product_id = p.id 
+      WHERE p.created_by = $1 
+        AND a.status = 'ended' 
+        AND a.current_price IS NOT NULL
+        AND a.current_price > 0
+    `, [sellerId]);
+
+    const totalAuctionsCount = parseInt(totalAuctions.rows[0].count) || 0;
+    const totalSalesCount = parseInt(salesData.rows[0].sales_count) || 0;
+
+    const analytics = {
+      tier: sellerProfile.tier,
+      totalAuctions: totalAuctionsCount,
+      totalViews: parseInt(totalViews.rows[0].total) || 0,
+      totalBids: parseInt(totalBids.rows[0].total) || 0,
+      totalSales: totalSalesCount,
+      avgSalePrice: parseFloat(salesData.rows[0].avg_price) || 0,
+      conversionRate: totalAuctionsCount > 0 
+        ? parseFloat(((totalSalesCount / totalAuctionsCount) * 100).toFixed(1))
+        : 0,
+      analytics: analyticsResult.rows.map(row => ({
+        date: row.date,
+        views: parseInt(row.views) || 0,
+        bids: parseInt(row.bids) || 0,
+        sales: parseInt(row.sales) || 0,
+        unique_viewers: parseInt(row.unique_viewers) || 0
+      }))
+    };
+
+    console.log('✅ Analytics generated:', {
+      tier: analytics.tier,
+      totalAuctions: analytics.totalAuctions,
+      totalViews: analytics.totalViews,
+      totalBids: analytics.totalBids,
+      dataPoints: analytics.analytics.length
+    });
+
     res.json({
       success: true,
-      data: analyticsData
+      data: analytics
     });
+
   } catch (error) {
+    console.error('❌ Analytics fetch error:', error);
     res.status(500).json({
       success: false,
-      message: error.message
+      message: 'Failed to fetch analytics: ' + error.message
     });
   }
 };
+
+
+
+
 
 // Get seller earnings (mock data for now)
 exports.getEarnings = async (req, res) => {

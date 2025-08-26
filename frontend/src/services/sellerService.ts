@@ -1,5 +1,11 @@
 // src/services/sellerService.ts
 import api from './api';
+import { type SellerAnalytics } from '../types/sellerAnalytics';
+
+interface ApiResponse<T> {
+  data: T;
+  error?: string;
+}
 
 const sellerService = {
   // Get seller profile with tier progress
@@ -53,21 +59,43 @@ const sellerService = {
     return api.get('/seller/auctions', { params });
   },
 
-  
+  // Delete auction
+  deleteAuction: (auctionId: number) => {
+    return api.delete(`/seller/auctions/${auctionId}`);
+  },
+
   // Update auction status
   updateAuctionStatus: (auctionId: number, status: string) => {
     return api.patch(`/seller/auctions/${auctionId}/status`, { status });
   },
 
-  // Get seller analytics
-  getAnalytics: (days: number = 30) => {
-    return api.get('/seller/analytics', { params: { days } });
-  },
+  // // Get seller analytics
+  // getAnalytics: (days: number = 30) => {
+  //   return api.get('/seller/analytics', { params: { days } });
+  // },
 
   // Get seller earnings
   getEarnings: (params: { status?: string; period?: string } = {}) => {
     return api.get('/seller/earnings', { params });
-  }
-};
+  },
 
+  // ✅ FIXED: Get seller analytics with proper typing
+  getAnalytics: async (days: number = 30): Promise<SellerAnalytics> => {
+    try {
+      const response = await api.get<ApiResponse<SellerAnalytics>>('/seller/analytics', { 
+        params: { days } 
+      });
+      // Unwrap the data from the API response
+      return response.data.data;
+    } catch (error) {
+      console.error('Analytics service error:', error);
+      throw error;
+    }
+  },
+
+  // // Get seller earnings
+  // getEarnings: (params: { status?: string; period?: string } = {}) => {
+  //   return api.get('/seller/earnings', { params });
+  // }
+}
 export default sellerService;

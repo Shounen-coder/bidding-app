@@ -21,6 +21,7 @@ import CategoryIndex from './pages/category/CategoryIndex';
 import CategoryPage from './pages/category/CategoryPage';
 import AuctionDetail from './pages/auction/AuctionDetail';
 import HowItWorks from './pages/HowItWorks';
+import ContactUs from './pages/ContactUs';
 
 // Dashboard Components (Existing)
 import DashboardLayout from './pages/dashboard/DashboardLayout';
@@ -43,6 +44,12 @@ import SellerOrders from './pages/seller/SellerOrders';
 import SellerAcademy from './pages/seller/SellerAcademy';
 
 import SellerItemsPage from './pages/seller/SellerItemsPage';
+
+//test
+import OrderTest from './components/test/orderTest';
+
+//order
+import OrderDetail from './components/order/orderDetail';
 
 function App() {
   const dispatch = useDispatch<AppDispatch>();
@@ -86,22 +93,28 @@ function App() {
   return (
     <Router>
       <Routes>
+
+   <Route path="categories/:categorySlug" element={<CategoryPage />} />
+          <Route path="categories/:categorySlug/:subcategorySlug" element={<CategoryPage />} />
+        {/* test */}
+        <Route path="/test-orders" element={<OrderTest />} />
+
         {/* Public routes with main layout */}
         <Route path="/" element={<Layout />}>
           <Route index element={<Home />} />
+          <Route path="categories" element={<CategoryIndex />} />
           <Route path="login" element={<Login />} />
           <Route path="register" element={<Register />} />
           <Route path="auctions" element={<AuctionListing />} />
           <Route path="auctions/:id" element={<AuctionDetail />} />
           <Route path="auction-test" element={<AuctionTest />} />
-          <Route path="categories" element={<CategoryIndex />} />
-          <Route path="categories/:categoryName" element={<CategoryPage />} />
+       
           <Route path="how-it-works" element={<HowItWorks />} />
+          <Route path="contact" element={<ContactUs />} />
         </Route>
 
 
-  
-<Route path="/seller/:sellerId/items" element={<SellerItemsPage />} />
+        <Route path="/seller/:sellerId/items" element={<SellerItemsPage />} />
 
         {/* Protected dashboard routes - separate from main layout */}
         <Route
@@ -121,6 +134,7 @@ function App() {
           <Route path="orders" element={<DashboardOrders />} />
           <Route path="settings" element={<DashboardSettings />} />
           <Route path="messages" element={<DashboardMessages />} />
+<Route path="/dashboard/orders/:id" element={<OrderDetail />} />
           <Route path="help" element={<DashboardHelp />} />
           
           {/* NEW: Seller Dashboard Routes */}

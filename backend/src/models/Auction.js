@@ -674,12 +674,149 @@ static async findByIdWithDetails(id) {
 
   // NEW: Get seller's auctions with enhanced filtering
   // NEW: Get seller's auctions with enhanced filtering
+// static async getSellerAuctions(sellerId, filters = {}) {
+//   try {
+//     let whereConditions = ['p.created_by = $1'];
+//     let queryParams = [sellerId];
+//     let paramIndex = 2;
+    
+//     // Add status filter
+//     if (filters.status && filters.status !== 'all') {
+//       const statusCondition = this.buildStatusCondition(filters.status);
+//       if (statusCondition) {
+//         whereConditions.push(statusCondition.replace('AND ', ''));
+//       }
+//     }
+
+//     // Add category filter
+//     if (filters.category) {
+//       whereConditions.push(`p.category_id = $${paramIndex}`);
+//       queryParams.push(filters.category);
+//       paramIndex++;
+//     }
+
+//     // Build ORDER BY
+//     let orderBy = 'a.created_at DESC';
+//     if (filters.sortBy) {
+//       switch (filters.sortBy) {
+//         case 'ending_soon':
+//           orderBy = 'a.end_time ASC';
+//           break;
+//         case 'most_bids':
+//           orderBy = 'a.total_bids DESC';
+//           break;
+//         case 'most_viewed':
+//           orderBy = 'a.view_count DESC';
+//           break;
+//       }
+//     }
+
+//     // Pagination
+//     const limit = filters.limit || 20;
+//     const offset = filters.offset || 0;
+    
+//     // ✅ FIXED: Explicit column names to avoid conflicts
+//     const query = `
+//       SELECT 
+//         a.id as auction_id,              -- ✅ Explicit auction ID
+//         a.product_id,                    -- ✅ Foreign key to products
+//         a.start_time,
+//         a.end_time, 
+//         a.status,
+//         a.current_price,
+//         a.total_bids,
+//         a.view_count,
+//         a.created_at,
+//         a.updated_at,
+//         a.seller_tier,
+//         p.id as product_pk_id,           -- ✅ Product primary key (for reference)
+//         p.title,
+//         p.description,
+//         p.starting_price,
+//         p.condition,
+//         p.images,
+//         c.id as category_id,
+//         c.name as category_name,
+//         COALESCE(bid_stats.bid_count, 0) as total_bids,
+//         COALESCE(watch_stats.watch_count, 0) as total_watchers
+//       FROM auctions a
+//       JOIN products p ON a.product_id = p.id
+//       JOIN categories c ON p.category_id = c.id
+//       LEFT JOIN (
+//         SELECT auction_id, COUNT(*) as bid_count
+//         FROM bids GROUP BY auction_id
+//       ) bid_stats ON a.id = bid_stats.auction_id
+//       LEFT JOIN (
+//         SELECT auction_id, COUNT(*) as watch_count
+//         FROM watchlists GROUP BY auction_id
+//       ) watch_stats ON a.id = watch_stats.auction_id
+//       WHERE ${whereConditions.join(' AND ')}
+//       ORDER BY ${orderBy}
+//       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
+//     `;
+
+//     queryParams.push(limit, offset);
+//     const result = await pool.query(query, queryParams);
+
+//     return result.rows.map(row => {
+//       // ✅ FIXED: Use explicit column names
+//       const auctionData = {
+//         id: row.auction_id,              // ✅ Use auction_id column (16)
+//         product_id: row.product_id,      // ✅ Use product_id column (22)
+//         start_time: row.start_time,
+//         end_time: row.end_time,
+//         status: row.status,
+//         current_price: row.current_price,
+//         total_bids: row.total_bids,
+//         view_count: row.view_count,
+//         created_at: row.created_at,
+//         updated_at: row.updated_at,
+//         seller_tier: row.seller_tier
+//       };
+      
+//       const auction = new Auction(auctionData);
+      
+//       // ✅ VERIFY: These should now be correct
+//       console.log('🔧 FIXED Backend mapping:', {
+//         auctionId: auction.id,        // Should be 16
+//         productId: auction.productId, // Should be 22  
+//       });
+
+//       auction.product = {
+//         id: row.product_id,           // ✅ Product ID for internal use
+//         title: row.title,
+//         description: row.description,
+//         startingPrice: parseFloat(row.starting_price),
+//         currentPrice: row.current_price ? parseFloat(row.current_price) : null,
+//         condition: row.condition,
+//         images: row.images || []
+//       };
+
+//       auction.category = {
+//         id: row.category_id,
+//         name: row.category_name
+//       };
+
+//       // FIX: Map the computed values
+//       auction.startingPrice = parseFloat(row.starting_price);
+//       auction.currentPrice = row.current_price ? parseFloat(row.current_price) : null;
+//       auction.totalBids = parseInt(row.total_bids) || 0;
+//       auction.totalWatchers = parseInt(row.total_watchers) || 0;
+//       auction.viewCount = parseInt(row.view_count) || 0;
+
+//       return auction;
+//     });
+//   } catch (error) {
+//     throw new Error('Error getting seller auctions: ' + error.message);
+//   }
+// }
+
 static async getSellerAuctions(sellerId, filters = {}) {
   try {
     let whereConditions = ['p.created_by = $1'];
     let queryParams = [sellerId];
     let paramIndex = 2;
-    
+
     // Add status filter
     if (filters.status && filters.status !== 'all') {
       const statusCondition = this.buildStatusCondition(filters.status);
@@ -703,7 +840,7 @@ static async getSellerAuctions(sellerId, filters = {}) {
           orderBy = 'a.end_time ASC';
           break;
         case 'most_bids':
-          orderBy = 'a.total_bids DESC';
+          orderBy = 'COALESCE(bid_stats.bid_count, 0) DESC';
           break;
         case 'most_viewed':
           orderBy = 'a.view_count DESC';
@@ -714,22 +851,20 @@ static async getSellerAuctions(sellerId, filters = {}) {
     // Pagination
     const limit = filters.limit || 20;
     const offset = filters.offset || 0;
-    
-    // ✅ FIXED: Explicit column names to avoid conflicts
+
+    // ✅ FIXED: Query with real bid and view counts
     const query = `
-      SELECT 
-        a.id as auction_id,              -- ✅ Explicit auction ID
-        a.product_id,                    -- ✅ Foreign key to products
+      SELECT
+        a.id as auction_id,
+        a.product_id,
         a.start_time,
-        a.end_time, 
+        a.end_time,
         a.status,
         a.current_price,
-        a.total_bids,
         a.view_count,
         a.created_at,
         a.updated_at,
         a.seller_tier,
-        p.id as product_pk_id,           -- ✅ Product primary key (for reference)
         p.title,
         p.description,
         p.starting_price,
@@ -759,31 +894,23 @@ static async getSellerAuctions(sellerId, filters = {}) {
     const result = await pool.query(query, queryParams);
 
     return result.rows.map(row => {
-      // ✅ FIXED: Use explicit column names
       const auctionData = {
-        id: row.auction_id,              // ✅ Use auction_id column (16)
-        product_id: row.product_id,      // ✅ Use product_id column (22)
+        id: row.auction_id,
+        product_id: row.product_id,
         start_time: row.start_time,
         end_time: row.end_time,
         status: row.status,
         current_price: row.current_price,
-        total_bids: row.total_bids,
         view_count: row.view_count,
         created_at: row.created_at,
         updated_at: row.updated_at,
         seller_tier: row.seller_tier
       };
-      
+
       const auction = new Auction(auctionData);
-      
-      // ✅ VERIFY: These should now be correct
-      console.log('🔧 FIXED Backend mapping:', {
-        auctionId: auction.id,        // Should be 16
-        productId: auction.productId, // Should be 22  
-      });
 
       auction.product = {
-        id: row.product_id,           // ✅ Product ID for internal use
+        id: row.product_id,
         title: row.title,
         description: row.description,
         startingPrice: parseFloat(row.starting_price),
@@ -797,19 +924,27 @@ static async getSellerAuctions(sellerId, filters = {}) {
         name: row.category_name
       };
 
-      // FIX: Map the computed values
+      // ✅ FIXED: Assign real counts
       auction.startingPrice = parseFloat(row.starting_price);
-      auction.currentPrice = row.current_price ? parseFloat(row.current_price) : null;
+      auction.currentPrice = row.current_price ? parseFloat(row.current_price) : parseFloat(row.starting_price);
       auction.totalBids = parseInt(row.total_bids) || 0;
       auction.totalWatchers = parseInt(row.total_watchers) || 0;
       auction.viewCount = parseInt(row.view_count) || 0;
 
+      console.log('🔧 FIXED Seller Auctions mapping:', {
+        auctionId: auction.id,
+        totalBids: auction.totalBids,
+        viewCount: auction.viewCount
+      });
+
       return auction;
     });
+
   } catch (error) {
     throw new Error('Error getting seller auctions: ' + error.message);
   }
 }
+
 
 
   // NEW: Update auction view count

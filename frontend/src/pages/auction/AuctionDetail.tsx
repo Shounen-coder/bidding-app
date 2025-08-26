@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { useParams } from 'react-router-dom';
+import { auctionService } from '../../services/auctionService';
 import { useDispatch, useSelector } from 'react-redux';
 import { type RootState, type AppDispatch } from '../../store';
 import { fetchAuctionById, clearCurrentAuction } from '../../store/slices/auctionSlice';
@@ -37,6 +38,7 @@ const AuctionDetail: React.FC = () => {
   } = useNotifications();
 
   useEffect(() => {
+    
     if (id) {
       dispatch(fetchAuctionById(parseInt(id, 10)));
     }

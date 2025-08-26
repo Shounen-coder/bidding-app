@@ -14,6 +14,7 @@ const userRoutes = require('./routes/userRoutes');
 const auctionRoutes = require('./routes/auctionRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const sellerRoutes = require('./routes/sellerRoutes');
+const orderRoutes = require('./routes/orderRoutes');
 
 
 //import middlewares
@@ -24,8 +25,9 @@ const app = express();
 
 
 // Middleware
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// ✅ Increase body size limits to handle image uploads
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
 
 // Trust proxy if behind reverse proxy (for production)
@@ -93,6 +95,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/auctions', auctionRoutes);
 app.use('/api/seller', sellerRoutes);
+app.use('/api/orders', orderRoutes);
 
 // 404 handler
 app.use('*', (req, res) => {
@@ -102,6 +105,26 @@ app.use('*', (req, res) => {
     path: req.originalUrl
   });
 });
+
+
+// Error handling middleware (add this AFTER all routes)
+app.use((err, req, res, next) => {
+  console.error('🚨 Unhandled Error:', err);
+  console.error('Stack:', err.stack);
+  console.error('URL:', req.url);
+  console.error('Method:', req.method);
+  console.error('Body:', req.body);
+
+  res.status(500).json({
+    success: false,
+    message: 'Internal server error',
+    ...(process.env.NODE_ENV === 'development' && { 
+      error: err.message,
+      stack: err.stack 
+    })
+  });
+});
+
 
 // Global error handler
 app.use((error, req, res, next) => {

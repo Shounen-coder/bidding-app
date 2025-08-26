@@ -631,6 +631,134 @@ const getUserWatchlist = async (req, res) => {
   }
 };
 
+// Track unique view when user visits auction detail page
+exports.trackAuctionView = async (req, res) => {
+  try {
+    const { auctionId } = req.params;
+    const userId = req.user.id;
+
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+
+      // Try to insert unique view record
+      const insertResult = await client.query(`
+        INSERT INTO auction_unique_views (user_id, auction_id) 
+        VALUES ($1, $2) 
+        ON CONFLICT (user_id, auction_id) DO NOTHING
+        RETURNING id
+      `, [userId, auctionId]);
+
+      // If new unique view, increment auction view count
+      if (insertResult.rows.length > 0) {
+        await client.query(`
+          UPDATE auctions 
+          SET view_count = view_count + 1 
+          WHERE id = $1
+        `, [auctionId]);
+      }
+
+      await client.query('COMMIT');
+      
+      res.json({
+        success: true,
+        isNewView: insertResult.rows.length > 0
+      });
+
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
+
+  } catch (error) {
+    console.error('Error tracking auction view:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to track view'
+    });
+  }
+};
+
+// Track unique view when user visits auction detail page
+// ✅ FIXED: Use 'id' instead of 'auctionId' to match your route pattern
+const trackAuctionView = async (req, res) => {
+  try {
+    const { id } = req.params; // ✅ Changed from auctionId to id
+    const userId = req.user?.id || 1;
+
+    // Validate auction ID
+    if (!id || isNaN(parseInt(id))) {
+      return res.status(400).json({
+        success: false,
+        message: 'Valid auction ID is required'
+      });
+    }
+
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+
+      // Try to insert unique view record
+      const insertResult = await client.query(`
+        INSERT INTO auction_unique_views (user_id, auction_id) 
+        VALUES ($1, $2) 
+        ON CONFLICT (user_id, auction_id) DO NOTHING
+        RETURNING id
+      `, [userId, parseInt(id)]);
+
+      // If new unique view, increment auction view count
+      if (insertResult.rows.length > 0) {
+        await client.query(`
+          UPDATE auctions 
+          SET view_count = view_count + 1 
+          WHERE id = $1
+        `, [parseInt(id)]);
+
+        // Also update daily analytics
+        const today = new Date().toISOString().split('T')[0];
+        await client.query(`
+          INSERT INTO auction_analytics (auction_id, date, daily_views, unique_viewers)
+          VALUES ($1, $2, 1, 1)
+          ON CONFLICT (auction_id, date)
+          DO UPDATE SET
+            daily_views = auction_analytics.daily_views + 1,
+            unique_viewers = auction_analytics.unique_viewers + 1
+        `, [parseInt(id), today]);
+
+        console.log('✅ New unique view tracked for auction:', id, 'by user:', userId);
+      } else {
+        console.log('👁️ User', userId, 'already viewed auction', id);
+      }
+
+      await client.query('COMMIT');
+      
+      res.json({
+        success: true,
+        isNewView: insertResult.rows.length > 0,
+        message: insertResult.rows.length > 0 ? 'View tracked' : 'Already viewed'
+      });
+
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
+
+  } catch (error) {
+    console.error('Error tracking auction view:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to track view'
+    });
+  }
+};
+
+
+
+
 module.exports = {
   getAllAuctions,
   getAuctionById,
@@ -644,7 +772,8 @@ module.exports = {
   removeFromWatchlist,
   checkWatchlistStatus,
   getUserWatchlist,
-
   // ✅ ADD: Export helper function for use in Auction model
-  buildStatusCondition
+  buildStatusCondition,
+  // ✅ Make sure this is exported
+  trackAuctionView
 };

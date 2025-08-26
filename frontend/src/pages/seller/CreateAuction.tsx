@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { type RootState, type AppDispatch } from '../../store';
 import { fetchCategories, createAuction, clearError, fetchSellerProfile } from '../../store/slices/sellerSlice';
 import TierBadge from '../../components/seller/TierBadge';
+import ImageUpload from '../../components/ui/ImageUpload';
 
 interface FormData {
   title: string;
@@ -229,8 +230,8 @@ console.log('Current formData.category_id:', formData.category_id);
 console.log('Selected category:', selectedCategory);
 console.log('Categories:', categories);
 
-const handleInputChange = (field: keyof FormData, value: string | number) => {
-  console.log('handleInputChange called:', field, value); // Debug log
+const handleInputChange = (field: keyof FormData, value: string | number | string[]) => {
+  console.log('handleInputChange called:', field, value);
   setFormData({ ...formData, [field]: value });
   if (errors[field]) {
     setErrors({ ...errors, [field]: '' });
@@ -240,7 +241,7 @@ const handleInputChange = (field: keyof FormData, value: string | number) => {
 
   const getDefaultEndTime = () => {
     const date = new Date();
-    date.setDate(date.getDate() + 7); // Default to 7 days from now
+    date.setDate(date.getDate() + 4); // Default to 4 days from now
     return date.toISOString().slice(0, 16);
   };
 
@@ -502,7 +503,7 @@ const handleInputChange = (field: keyof FormData, value: string | number) => {
             Images {currentTier && `(Max: ${currentTier.features.includes('Up to 6 photos') ? '6' : '3'} photos)`}
           </h3>
           
-          <div className="space-y-4">
+          {/* <div className="space-y-4">
             <div className="flex space-x-2">
               <input
                 type="url"
@@ -544,7 +545,12 @@ const handleInputChange = (field: keyof FormData, value: string | number) => {
                 ))}
               </div>
             )}
-          </div>
+          </div> */}
+          <ImageUpload
+    images={formData.images}
+    onImagesChange={(images) => handleInputChange('images', images)}
+    maxImages={currentTier?.features.includes('Up to 6 photos') ? 6 : 3}
+  />
         </div>
 
         {/* Timing */}

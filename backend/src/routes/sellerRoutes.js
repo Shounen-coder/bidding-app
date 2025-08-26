@@ -103,13 +103,17 @@ router.patch('/auctions/:auctionId/status', [
 ], sellerController.updateAuctionStatus);
 
 // Get seller analytics
-router.get('/analytics', [
-  query('days')
-    .optional()
-    .isInt({ min: 1, max: 365 })
-    .withMessage('Days must be between 1 and 365'),
-  handleValidationErrors
-], sellerController.getAnalytics);
+// router.get('/analytics', [
+//   query('days')
+//     .optional()
+//     .isInt({ min: 1, max: 365 })
+//     .withMessage('Days must be between 1 and 365'),
+//   handleValidationErrors
+// ], sellerController.getAnalytics);
+
+// Add this line to routes/sellerRoutes.js
+router.get('/analytics', authenticateToken, sellerController.getAnalytics);
+
 
 // Get seller earnings
 router.get('/earnings', [

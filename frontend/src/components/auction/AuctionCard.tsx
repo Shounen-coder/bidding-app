@@ -11,7 +11,7 @@ interface AuctionCardProps {
   auction: Auction;
   className?: string;
   variant?: 'default' | 'featured' | 'compact';
-  isEnded?: boolean; // Already present
+  isEnded?: boolean;
 }
 
 const AuctionCard: React.FC<AuctionCardProps> = ({ 
@@ -22,6 +22,7 @@ const AuctionCard: React.FC<AuctionCardProps> = ({
 }) => {
   const { product, category, seller, currentPrice, totalBids, endTime, status, reserveMet } = auction;
   const [isHovered, setIsHovered] = useState(false);
+  const [imageError, setImageError] = useState(false);
   
   // Notifications hook for watchlist feedback
   const { notifySuccess } = useNotifications();
@@ -32,6 +33,32 @@ const AuctionCard: React.FC<AuctionCardProps> = ({
 
   // ✅ ADD: Calculate if auction is ended based on endTime if isEnded prop not provided
   const auctionEnded = isEnded || new Date(endTime) <= new Date();
+
+  // ✅ ADD: Helper function to get proper image URL (same as AuctionDetail)
+  const getImageUrl = (image: string) => {
+    if (!image) return '';
+    
+    // If already a full URL (starts with http/https), return as-is
+    if (image.startsWith('http://') || image.startsWith('https://')) {
+      return image;
+    }
+    
+    // If starts with '/', it's an absolute path from root
+    if (image.startsWith('/')) {
+      return `${window.location.origin}${image}`;
+    }
+    
+    // Otherwise, assume it's a relative path and prepend your API base URL
+    return `http://localhost:5000/${image}`;
+  };
+
+  // ✅ ADD: Get valid images from product
+  const validImages = product.images
+    ?.filter(img => img && img.trim() !== '') // Remove empty/null images
+    ?.map(img => getImageUrl(img)) || [];
+
+  // ✅ ADD: Get primary image (first valid image)
+  const primaryImage = validImages.length > 0 && !imageError ? validImages[0] : null;
 
   // Format price with commas
   const formatPrice = (price: number) => {
@@ -78,6 +105,11 @@ const AuctionCard: React.FC<AuctionCardProps> = ({
     );
   };
 
+  // ✅ ADD: Handle image load errors
+  const handleImageError = () => {
+    setImageError(true);
+  };
+
   // ✅ UPDATED: Add opacity for ended auctions
   const cardVariants = {
     default: clsx(
@@ -107,7 +139,7 @@ const AuctionCard: React.FC<AuctionCardProps> = ({
       onMouseLeave={() => setIsHovered(false)}
     >
       <Link to={`/auctions/${auction.id}`} className="block group">
-        {/* Image Section with Modern Gradient Overlay */}
+        {/* ✅ UPDATED: Image Section with Real Image Support */}
         <div className={clsx('relative overflow-hidden rounded-t-2xl bg-gradient-to-br from-gray-100 to-gray-200', imageVariants[variant])}>
           {/* ✅ ADD: Ended overlay for visual indication */}
           {auctionEnded && (
@@ -118,27 +150,55 @@ const AuctionCard: React.FC<AuctionCardProps> = ({
             </div>
           )}
 
-          {/* Placeholder with modern pattern */}
-          <div className="absolute inset-0 bg-gradient-to-br from-gray-50 via-gray-100 to-gray-150">
-            <div className="absolute inset-0 opacity-10">
-              {/* Modern geometric pattern */}
-              <svg className="w-full h-full" viewBox="0 0 100 100">
-                <defs>
-                  <pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse">
-                    <path d="M 10 0 L 0 0 0 10" fill="none" stroke="currentColor" strokeWidth="0.5"/>
-                  </pattern>
-                </defs>
-                <rect width="100" height="100" fill="url(#grid)" />
-              </svg>
-            </div>
-            
-            {/* Central icon */}
-            <div className="absolute inset-0 flex items-center justify-center">
-              <svg className="w-16 h-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-              </svg>
-            </div>
-          </div>
+          {/* ✅ UPDATED: Real Image or Placeholder */}
+          {primaryImage ? (
+            <>
+              {/* Real Product Image */}
+              <img
+                src={primaryImage}
+                alt={product.title}
+                className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                onError={handleImageError}
+                loading="lazy"
+              />
+              
+              {/* Image counter badge if multiple images */}
+              {validImages.length > 1 && (
+                <div className="absolute bottom-4 left-4">
+                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-black/70 backdrop-blur-sm text-white border border-white/20">
+                    <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
+                    </svg>
+                    {validImages.length}
+                  </span>
+                </div>
+              )}
+            </>
+          ) : (
+            <>
+              {/* ✅ PRESERVED: Original Placeholder Design */}
+              <div className="absolute inset-0 bg-gradient-to-br from-gray-50 via-gray-100 to-gray-150">
+                <div className="absolute inset-0 opacity-10">
+                  {/* Modern geometric pattern */}
+                  <svg className="w-full h-full" viewBox="0 0 100 100">
+                    <defs>
+                      <pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse">
+                        <path d="M 10 0 L 0 0 0 10" fill="none" stroke="currentColor" strokeWidth="0.5"/>
+                      </pattern>
+                    </defs>
+                    <rect width="100" height="100" fill="url(#grid)" />
+                  </svg>
+                </div>
+                
+                {/* Central icon */}
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <svg className="w-16 h-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                </div>
+              </div>
+            </>
+          )}
           
           {/* Modern overlay badges */}
           <div className="absolute top-4 left-4 flex flex-col gap-2">
@@ -203,11 +263,11 @@ const AuctionCard: React.FC<AuctionCardProps> = ({
           {/* Modern hover overlay */}
           <div className={clsx(
             'absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent transition-opacity duration-300',
-            isHovered ? 'opacity-100' : 'opacity-0'
+            isHovered && primaryImage ? 'opacity-100' : 'opacity-0'
           )} />
         </div>
 
-        {/* Content Section with Enhanced Typography */}
+        {/* Rest of your existing content section remains exactly the same */}
         <div className="p-6">
           {/* Category and Seller with modern icons */}
           <div className="flex items-center justify-between mb-3">

@@ -2,7 +2,7 @@ require('dotenv').config();
 const { app, initializeApp } = require('./app');
 
 const PORT = process.env.PORT || 5000;
-
+const AuctionEndService = require('./services/auctionEndService');
 // Declare server variable at module scope
 let server;
 
@@ -36,6 +36,7 @@ const startServer = async () => {
 
     // Start HTTP server and assign to the module-scoped variable
     server = app.listen(PORT, () => {
+      AuctionEndService.startScheduler();
       console.log('🚀 BIDDEX Backend Server Started');
       console.log(`📡 Server running on port ${PORT}`);
       console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);

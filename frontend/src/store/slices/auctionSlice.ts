@@ -54,6 +54,24 @@ export const fetchAuctions = createAsyncThunk<
   }
 );
 
+// New thunk for loading more auctions (appends to existing)
+export const fetchMoreAuctions = createAsyncThunk<
+  any,
+  AuctionFilters,
+  { rejectValue: ApiError }
+>(
+  'auctions/fetchMoreAuctions',
+  async (filters: AuctionFilters = {}, { rejectWithValue }) => {
+    try {
+      const response = await auctionService.getMoreAuctions(filters);
+      return response.data;
+    } catch (error: any) {
+      return rejectWithValue({ message: error.message || 'Failed to fetch more auctions' });
+    }
+  }
+);
+
+
 export const fetchAuctionById = createAsyncThunk<
   any,
   number,
@@ -70,18 +88,20 @@ export const fetchAuctionById = createAsyncThunk<
   }
 );
 
-export const fetchAuctionsByCategory = createAsyncThunk<
-  any,
-  { categorySlug: string; filters?: AuctionFilters },
-  { rejectValue: ApiError }
->(
-  'auctions/fetchAuctionsByCategory',
-  async ({ categorySlug, filters = {} }, { rejectWithValue }) => {
+export const fetchAuctionsByCategory = createAsyncThunk(
+  'auctions/fetchByCategory',
+  async (params: {
+    categorySlug: string;
+    subcategorySlug?: string;
+    status?: string;
+    page?: number;
+    limit?: number;
+  }, { rejectWithValue }) => {
     try {
-      const response = await auctionService.getAuctionsByCategory(categorySlug, filters);
+      const response = await auctionService.getAuctionsByCategory(params);
       return response.data;
     } catch (error: any) {
-      return rejectWithValue({ message: error.message || 'Failed to fetch category auctions' });
+      return rejectWithValue(error.response?.data?.message || 'Failed to fetch auctions');
     }
   }
 );
@@ -135,6 +155,21 @@ const auctionSlice = createSlice({
         state.isLoading = false;
         state.error = action.payload?.message || 'Failed to fetch auctions';
       })
+
+       // Fetch more auctions (appends to existing auctions)
+      .addCase(fetchMoreAuctions.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(fetchMoreAuctions.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.auctions = [...state.auctions, ...action.payload.auctions];
+        state.pagination = action.payload.pagination;
+      })
+      .addCase(fetchMoreAuctions.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload?.message || 'Failed to fetch more auctions';
+      })
       
       // Fetch auction by ID
       .addCase(fetchAuctionById.pending, (state) => {
@@ -155,16 +190,24 @@ const auctionSlice = createSlice({
         state.isLoading = true;
         state.error = null;
       })
-      .addCase(fetchAuctionsByCategory.fulfilled, (state, action) => {
-        state.isLoading = false;
-        state.auctions = action.payload.auctions;
-        state.pagination = action.payload.pagination;
-      })
-      .addCase(fetchAuctionsByCategory.rejected, (state, action) => {
-        state.isLoading = false;
-        state.error = action.payload?.message || 'Failed to fetch category auctions';
-      })
-      
+      // Add to extraReducers
+.addCase(fetchAuctionsByCategory.fulfilled, (state, action) => {
+  state.auctions = action.payload.auctions;
+  state.pagination = action.payload.pagination;
+  state.isLoading = false;
+})
+    .addCase(fetchAuctionsByCategory.rejected, (state, action) => {
+  state.isLoading = false;
+  
+  // ✅ Type-safe error handling
+  if (action.payload && typeof action.payload === 'object' && 'message' in action.payload) {
+    state.error = (action.payload as { message: string }).message;
+  } else if (typeof action.payload === 'string') {
+    state.error = action.payload;
+  } else {
+    state.error = 'Failed to fetch category auctions';
+  }
+})
       // Fetch featured auctions
       .addCase(fetchFeaturedAuctions.pending, (state) => {
         state.isLoading = true;

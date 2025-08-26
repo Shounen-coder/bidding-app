@@ -25,7 +25,7 @@ const Home: React.FC = () => {
               Premium Auction Platform
             </div>
             
-            <h1 className="text-5xl md:text-7xl font-bold mb-6 leading-tight">
+            <h1 className="text-5xl md:text-7xl font-bold mb-6 leading-tight text-white">
               Welcome to <span className="bg-gradient-to-r from-teal-400 to-cyan-400 bg-clip-text text-transparent">BIDDEX</span>
             </h1>
             
@@ -125,7 +125,7 @@ const Home: React.FC = () => {
 
       {/* Categories Section - Enhanced styling wrapper */}
       <div className="py-16 bg-gradient-to-br from-gray-50 to-slate-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-4xl lg:text-5xl font-bold text-gray-900 mb-6">
               Explore <span style={{ color: '#294c5b' }}>Categories</span>
