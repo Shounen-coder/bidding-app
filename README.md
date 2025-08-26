@@ -1,4 +1,4 @@
-# BidMaster Pro - Online Bidding Platform
+# Biddex- Online Bidding Platform
 
 ## Project Structure
 bidding-app/
