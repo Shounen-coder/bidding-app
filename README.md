@@ -10,7 +10,7 @@ bidding-app/
 text
 
 ## Technology Stack
-- **Frontend**: React.js, Material-UI, Redux Toolkit
+- **Frontend**: React.js, Tailwind CSS, Redux Toolkit
 - **Backend**: Node.js, Express.js, Socket.io
 - **Database**: PostgreSQL
 - **Authentication**: JWT
