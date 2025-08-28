@@ -1,245 +1,357 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import CategoryGrid from '../components/category/CategoryGrid';
 import { type Category } from '../types';
 import { useNavigate } from 'react-router-dom';
 
 const Home: React.FC = () => {
   const navigate = useNavigate();
+  const heroRef = useRef<HTMLDivElement>(null);
+  const featuresRef = useRef<HTMLDivElement>(null);
 
-  // Updated handler - now only receives category (no subcategory on homepage)
+  // Parallax effect for hero section
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollY = window.scrollY;
+      if (heroRef.current) {
+        heroRef.current.style.transform = `translateY(${scrollY * 0.5}px)`;
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // Intersection observer for feature cards
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry, index) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('animate-slide-up');
+            (entry.target as HTMLElement).style.animationDelay = `${index * 150}ms`;
+          }
+        });
+      },
+      { threshold: 0.1, rootMargin: '-50px' }
+    );
+
+    const featureCards = document.querySelectorAll('.feature-card');
+    featureCards.forEach((card) => observer.observe(card));
+
+    return () => observer.disconnect();
+  }, []);
+
   const handleCategorySelect = (category: Category) => {
     console.log('Selected category:', category);
-    // Since we're using direct Link navigation in CategoryGrid,
-    // this is mainly for debugging/analytics
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-slate-50">
-      {/* Hero Section - Enhanced with modern styling */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-[#0f2027] via-[#203a43] to-[#2c5364]">
-        <div className="absolute inset-0 bg-[url('/patterns/grid.svg')] opacity-20"></div>
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 lg:py-32">
-          <div className="text-center">
-            <div className="inline-flex items-center bg-teal-600/20 text-teal-300 px-4 py-2 rounded-full text-sm font-medium mb-8 backdrop-blur-sm border border-teal-400/30">
-              <span className="w-2 h-2 bg-teal-400 rounded-full mr-2 animate-pulse"></span>
-              Premium Auction Platform
-            </div>
-            
-            <h1 className="text-5xl md:text-7xl font-bold mb-6 leading-tight text-white">
-              Welcome to <span className="bg-gradient-to-r from-teal-400 to-cyan-400 bg-clip-text text-transparent">BIDDEX</span>
-            </h1>
-            
-            <p className="text-xl md:text-2xl text-gray-300 mb-12 max-w-4xl mx-auto leading-relaxed">
+    <div className="min-h-screen overflow-hidden">
+      {/* Enhanced Hero Section with Parallax */}
+      <div className="relative h-screen flex items-center justify-center overflow-hidden">
+        {/* Animated Background Gradient */}
+        <div 
+          ref={heroRef}
+          className="absolute inset-0 bg-gradient-to-br from-[#0f2027] via-[#203a43] to-[#2c5364] hero-gradient"
+        />
+        
+        {/* Floating Particles */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          {[...Array(20)].map((_, i) => (
+            <div
+              key={i}
+              className="absolute w-2 h-2 bg-teal-400 rounded-full opacity-30 animate-float"
+              style={{
+                left: `${Math.random() * 100}%`,
+                top: `${Math.random() * 100}%`,
+                animationDelay: `${Math.random() * 10}s`,
+                animationDuration: `${8 + Math.random() * 4}s`
+              }}
+            />
+          ))}
+        </div>
+
+        {/* Hero Content */}
+        <div className="relative z-10 text-center text-white px-4 max-w-4xl mx-auto">
+          <h1 className="text-6xl md:text-7xl font-bold mb-6 hero-title">
+            <span className="bg-gradient-to-r from-teal-400 to-cyan-400 bg-clip-text text-transparent animate-gradient">
+              BIDDEX
+            </span>
+          </h1>
+          
+          <div className="hero-subtitle opacity-0 animate-fade-in-up" style={{ animationDelay: '0.5s' }}>
+            <p className="text-xl md:text-2xl mb-8 text-gray-300">
               Your premier destination for online auctions. Bid on unique items, 
               discover treasures, and win amazing deals from trusted sellers worldwide.
             </p>
-            
-            <div className="flex flex-col sm:flex-row gap-6 justify-center">
-              <button 
-                onClick={() => navigate('/auctions')}
-                className="cursor-pointer inline-flex items-center px-8 py-4 bg-gradient-to-r from-teal-600 to-cyan-600 text-white font-semibold rounded-xl hover:from-teal-700 hover:to-cyan-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 text-lg"
-              >
-                <svg className="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-                Browse Auctions
-              </button>
-              <button 
-                onClick={() => navigate('/how-it-works')}
-                className="cursor-pointer inline-flex items-center px-8 py-4 border-2 border-gray-400 text-gray-300 font-semibold rounded-xl hover:border-white hover:text-white transition-all duration-300 text-lg"
-              >
-                <svg className="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                </svg>
-                How It Works
-              </button>
-            </div>
+          </div>
+
+          <div className="hero-cta opacity-0 animate-fade-in-up" style={{ animationDelay: '1s' }}>
+            <button 
+            onClick={() => navigate('/auctions')}
+            className="cursor-pointer bg-[#1f3c4a] hover:bg-teal-600 text-white px-8 py-4 rounded-lg text-lg font-semibold transition-all duration-300 transform hover:scale-105 hover:shadow-2xl button-glow">
+              Start Bidding Now
+            </button>
           </div>
         </div>
 
-        {/* Floating Elements */}
-        <div className="absolute top-20 left-10 w-20 h-20 bg-teal-500/20 rounded-full blur-xl animate-pulse"></div>
-        <div className="absolute bottom-20 right-10 w-32 h-32 bg-cyan-500/20 rounded-full blur-xl animate-pulse delay-1000"></div>
+        {/* Scroll Indicator */}
+        <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 animate-bounce">
+          <div className="w-6 h-10 border-2 border-white rounded-full flex justify-center">
+            <div className="w-1 h-3 bg-white rounded-full mt-2 animate-scroll-indicator"></div>
+          </div>
+        </div>
       </div>
 
-      {/* Features Section - Enhanced with modern cards */}
-      <div className="py-24 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-20">
-            <h2 className="text-4xl lg:text-5xl font-bold text-gray-900 mb-6">
-              Why Choose <span style={{ color: '#294c5b' }}>BIDDEX</span>?
+      {/* Enhanced Features Section */}
+      <div ref={featuresRef} className="py-20 bg-white relative overflow-hidden">
+        {/* Section Background Animation */}
+        <div className="absolute inset-0 opacity-5">
+          <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-teal-400 to-cyan-400 animate-pulse-slow"></div>
+        </div>
+
+        <div className="container mx-auto px-4 relative z-10">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl md:text-5xl font-bold text-gray-800 mb-4 section-title">
+              Experience the future of online auctions
             </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Experience the future of online auctions with our cutting-edge features
-            </p>
+            <p className="text-xl text-gray-600">with our cutting-edge features</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="group text-center bg-white rounded-3xl p-8 border-2 border-teal-100 hover:border-teal-300 transition-all duration-500 transform hover:scale-105 hover:shadow-2xl">
-              <div className="w-20 h-20 bg-gradient-to-r from-teal-400 to-cyan-500 rounded-3xl flex items-center justify-center mx-auto mb-6 group-hover:shadow-xl transition-shadow duration-300">
-                <span className="text-3xl">🎯</span>
+            {/* Feature Card 1 */}
+            <div className="feature-card opacity-0 transform translate-y-8 group">
+              <div className="bg-white rounded-xl p-8 shadow-lg hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2 border border-gray-100 overflow-hidden relative">
+                <div className="absolute inset-0 bg-gradient-to-br from-teal-50 to-cyan-50 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                <div className="relative z-10">
+                  <div className="w-16 h-16 bg-gradient-to-br from-teal-400 to-cyan-400 rounded-full flex items-center justify-center mb-6 transform group-hover:scale-110 transition-transform duration-300">
+                    <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-2xl font-semibold mb-4 text-gray-800 group-hover:text-teal-600 transition-colors duration-300">
+                    Advanced Bidding
+                  </h3>
+                  <p className="text-gray-600 leading-relaxed">
+                    Advanced bidding system with real-time updates, automatic bidding, and intelligent priority logic
+                  </p>
+                </div>
+                <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-teal-400 to-cyan-400 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-500 origin-left"></div>
               </div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-4 group-hover:text-teal-600 transition-colors">
-                Smart Bidding
-              </h3>
-              <p className="text-gray-600 group-hover:text-gray-700 transition-colors leading-relaxed">
-                Advanced bidding system with real-time updates, automatic bidding, and intelligent priority logic
-              </p>
-              
-              {/* Hover Effect */}
-              <div className="absolute inset-0 bg-gradient-to-r from-teal-50/50 to-cyan-50/50 rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"></div>
             </div>
 
-            <div className="group text-center bg-white rounded-3xl p-8 border-2 border-emerald-100 hover:border-emerald-300 transition-all duration-500 transform hover:scale-105 hover:shadow-2xl">
-              <div className="w-20 h-20 bg-gradient-to-r from-emerald-400 to-teal-500 rounded-3xl flex items-center justify-center mx-auto mb-6 group-hover:shadow-xl transition-shadow duration-300">
-                <span className="text-3xl">🔒</span>
+            {/* Feature Card 2 */}
+            <div className="feature-card opacity-0 transform translate-y-8 group">
+              <div className="bg-white rounded-xl p-8 shadow-lg hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2 border border-gray-100 overflow-hidden relative">
+                <div className="absolute inset-0 bg-gradient-to-br from-teal-50 to-cyan-50 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                <div className="relative z-10">
+                  <div className="w-16 h-16 bg-gradient-to-br from-teal-400 to-cyan-400 rounded-full flex items-center justify-center mb-6 transform group-hover:scale-110 transition-transform duration-300">
+                    <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-2xl font-semibold mb-4 text-gray-800 group-hover:text-teal-600 transition-colors duration-300">
+                    Secure Payments
+                  </h3>
+                  <p className="text-gray-600 leading-relaxed">
+                    Bank-level security with encrypted payments, escrow protection, and comprehensive buyer safeguards
+                  </p>
+                </div>
+                <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-teal-400 to-cyan-400 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-500 origin-left"></div>
               </div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-4 group-hover:text-emerald-600 transition-colors">
-                Secure Transactions
-              </h3>
-              <p className="text-gray-600 group-hover:text-gray-700 transition-colors leading-relaxed">
-                Bank-level security with encrypted payments, escrow protection, and comprehensive buyer safeguards
-              </p>
-              
-              {/* Hover Effect */}
-              <div className="absolute inset-0 bg-gradient-to-r from-emerald-50/50 to-teal-50/50 rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"></div>
             </div>
 
-            <div className="group text-center bg-white rounded-3xl p-8 border-2 border-cyan-100 hover:border-cyan-300 transition-all duration-500 transform hover:scale-105 hover:shadow-2xl">
-              <div className="w-20 h-20 bg-gradient-to-r from-cyan-400 to-blue-500 rounded-3xl flex items-center justify-center mx-auto mb-6 group-hover:shadow-xl transition-shadow duration-300">
-                <span className="text-3xl">⚡</span>
+            {/* Feature Card 3 */}
+            <div className="feature-card opacity-0 transform translate-y-8 group">
+              <div className="bg-white rounded-xl p-8 shadow-lg hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2 border border-gray-100 overflow-hidden relative">
+                <div className="absolute inset-0 bg-gradient-to-br from-teal-50 to-cyan-50 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                <div className="relative z-10">
+                  <div className="w-16 h-16 bg-gradient-to-br from-teal-400 to-cyan-400 rounded-full flex items-center justify-center mb-6 transform group-hover:scale-110 transition-transform duration-300">
+                    <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-5 5v-5zM4 17h5l-5 5v-5zM12 8v8m0 0l3-3m-3 3l-3-3" />
+                    </svg>
+                  </div>
+                  <h3 className="text-2xl font-semibold mb-4 text-gray-800 group-hover:text-teal-600 transition-colors duration-300">
+                    Real-time Updates
+                  </h3>
+                  <p className="text-gray-600 leading-relaxed">
+                    Live notifications, instant updates, and real-time auction tracking for all your bidding activities
+                  </p>
+                </div>
+                <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-teal-400 to-cyan-400 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-500 origin-left"></div>
               </div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-4 group-hover:text-cyan-600 transition-colors">
-                Real-Time Updates
-              </h3>
-              <p className="text-gray-600 group-hover:text-gray-700 transition-colors leading-relaxed">
-                Live notifications, instant updates, and real-time auction tracking for all your bidding activities
-              </p>
-              
-              {/* Hover Effect */}
-              <div className="absolute inset-0 bg-gradient-to-r from-cyan-50/50 to-blue-50/50 rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"></div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Categories Section - Enhanced styling wrapper */}
-      <div className="py-16 bg-gradient-to-br from-gray-50 to-slate-50">
-        <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8">
+      {/* Enhanced Categories Section */}
+      <div className="py-20 bg-gradient-to-b from-gray-50 to-white">
+        <div className="container mx-auto px-4">
           <div className="text-center mb-16">
-            <h2 className="text-4xl lg:text-5xl font-bold text-gray-900 mb-6">
-              Explore <span style={{ color: '#294c5b' }}>Categories</span>
+            <h2 className="text-4xl md:text-5xl font-bold text-gray-800 mb-4 animate-fade-in">
+              Discover amazing auctions
             </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Discover amazing auctions across all your favorite categories
+            <p className="text-xl text-gray-600 animate-fade-in" style={{ animationDelay: '0.2s' }}>
+              across all your favorite categories
             </p>
           </div>
           
-          {/* Categories Section - Now uses the clean CategoryGrid */}
-          <CategoryGrid onCategorySelect={handleCategorySelect} />
-        </div>
-      </div>
-
-      {/* Statistics Section - New addition */}
-      <div className="py-24 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-gray-900 mb-6">
-              Trusted by <span style={{ color: '#294c5b' }}>Thousands</span>
-            </h2>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Join our growing community of successful buyers and sellers
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-4 gap-8">
-            {[
-              { number: "50K+", label: "Active Users", icon: "👥", gradient: "from-teal-400 to-cyan-500" },
-              { number: "200K+", label: "Successful Auctions", icon: "🎯", gradient: "from-emerald-400 to-teal-500" },
-              { number: "$10M+", label: "Transaction Value", icon: "💰", gradient: "from-cyan-400 to-blue-500" },
-              { number: "99.8%", label: "Satisfaction Rate", icon: "⭐", gradient: "from-amber-400 to-orange-500" }
-            ].map((stat, index) => (
-              <div key={index} className="text-center group">
-                <div className="bg-gradient-to-br from-teal-50 to-cyan-50 rounded-3xl p-8 border-2 border-teal-100 group-hover:border-teal-300 transition-all duration-300 transform group-hover:scale-105">
-                  <div className={`w-16 h-16 bg-gradient-to-r ${stat.gradient} rounded-2xl flex items-center justify-center mx-auto mb-4 text-2xl text-white shadow-lg`}>
-                    {stat.icon}
-                  </div>
-                  <div className="text-4xl font-bold mb-2" style={{ color: '#294c5b' }}>
-                    {stat.number}
-                  </div>
-                  <div className="text-gray-600 font-medium">{stat.label}</div>
-                </div>
-              </div>
-            ))}
+          <div className="animate-fade-in" style={{ animationDelay: '0.4s' }}>
+            <CategoryGrid onCategorySelect={handleCategorySelect} />
           </div>
         </div>
       </div>
 
-      {/* CTA Section - Enhanced with modern gradient and styling */}
-      <div className="relative overflow-hidden bg-gradient-to-r from-teal-600 to-cyan-600">
-        <div className="absolute inset-0 bg-[url('/patterns/grid.svg')] opacity-20"></div>
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 text-center">
-          <h2 className="text-4xl lg:text-5xl font-bold text-white mb-6">
-            Ready to Start Your <span className="text-teal-200">Auction Journey</span>?
+      {/* Enhanced CTA Section */}
+      <div className="py-20 bg-gradient-to-br from-[#0f2027] via-[#203a43] to-[#2c5364] relative overflow-hidden">
+        <div className="absolute inset-0">
+          <div className="absolute inset-0 bg-black opacity-10"></div>
+          {[...Array(15)].map((_, i) => (
+            <div
+              key={i}
+              className="absolute w-1 h-1 bg-white rounded-full opacity-20 animate-twinkle"
+              style={{
+                left: `${Math.random() * 100}%`,
+                top: `${Math.random() * 100}%`,
+                animationDelay: `${Math.random() * 5}s`
+              }}
+            />
+          ))}
+        </div>
+
+        <div className="container mx-auto px-4 text-center relative z-10">
+          <h2 className="text-4xl md:text-5xl font-bold text-white mb-4 animate-fade-in">
+            Join our growing community
           </h2>
-          <p className="text-xl text-teal-100 mb-12 max-w-3xl mx-auto leading-relaxed">
-            Join thousands of satisfied buyers and sellers on BIDDEX. Create your free account today and start bidding on amazing items from around the world.
+          <p className="text-xl text-gray-300 mb-8 animate-fade-in" style={{ animationDelay: '0.2s' }}>
+            of successful buyers and sellers
           </p>
           
-          <div className="flex flex-col sm:flex-row gap-6 justify-center mb-12">
-            <button 
-              onClick={() => navigate('/register')}
-              className="inline-flex items-center px-8 py-4 bg-white text-teal-600 font-bold rounded-xl hover:bg-gray-100 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 text-lg"
-            >
-              <svg className="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-              </svg>
-              Create Free Account
-            </button>
+          <div className="animate-fade-in" style={{ animationDelay: '0.4s' }}>
+            <p className="text-lg text-gray-400 mb-8 max-w-2xl mx-auto">
+              Join thousands of satisfied buyers and sellers on BIDDEX. Create your free account today and start bidding on amazing items from around the world.
+            </p>
             
-            <button 
-              onClick={() => navigate('/auctions')}
-              className="inline-flex items-center px-8 py-4 border-2 border-white text-white font-bold rounded-xl hover:bg-white hover:text-teal-600 transition-all duration-300 text-lg"
-            >
-              <svg className="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-              Start Browsing Now
-            </button>
-          </div>
-
-          <div className="flex flex-wrap items-center justify-center gap-8 text-teal-100">
-            <div className="flex items-center">
-              <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-              </svg>
-              No Setup Fees
-            </div>
-            <div className="flex items-center">
-              <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-              </svg>
-              Secure Payments
-            </div>
-            <div className="flex items-center">
-              <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-              </svg>
-              24/7 Support
-            </div>
-            <div className="flex items-center">
-              <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-              </svg>
-              Money Back Guarantee
+            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+              <button className="cursor-pointer bg-teal-600 hover:bg-teal-700 text-white px-8 py-4 rounded-lg text-lg font-semibold transition-all duration-300 transform hover:scale-105 hover:shadow-2xl">
+                Get Started Free
+              </button>
+              <button 
+              onClick= {() => navigate('/how-it-works')}
+              className="cursor-pointer border-2 border-teal-400 text-teal-400 hover:bg-teal-400 hover:text-white px-8 py-4 rounded-lg text-lg font-semibold transition-all duration-300 transform hover:scale-105">
+                Learn More
+              </button>
             </div>
           </div>
         </div>
-
-        {/* Floating Elements */}
-        <div className="absolute top-20 left-10 w-20 h-20 bg-white/10 rounded-full blur-xl animate-pulse"></div>
-        <div className="absolute bottom-20 right-10 w-32 h-32 bg-white/10 rounded-full blur-xl animate-pulse delay-1000"></div>
       </div>
+
+      {/* Custom Styles */}
+      <style >{`
+        .hero-gradient {
+          background-size: 400% 400%;
+          animation: gradient-shift 15s ease infinite;
+        }
+        
+        @keyframes gradient-shift {
+          0%, 100% { background-position: 0% 50%; }
+          50% { background-position: 100% 50%; }
+        }
+        
+        .animate-gradient {
+          background-size: 200% 200%;
+          animation: gradient-flow 3s ease infinite;
+        }
+        
+        @keyframes gradient-flow {
+          0%, 100% { background-position: 0% 50%; }
+          50% { background-position: 100% 50%; }
+        }
+        
+        .animate-float {
+          animation: float linear infinite;
+        }
+        
+        @keyframes float {
+          0% { transform: translateY(100vh) rotate(0deg); }
+          100% { transform: translateY(-100px) rotate(360deg); }
+        }
+        
+        .animate-fade-in-up {
+          animation: fadeInUp 1s ease forwards;
+        }
+        
+        @keyframes fadeInUp {
+          from {
+            opacity: 0;
+            transform: translateY(30px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        
+        .animate-slide-up {
+          animation: slideUp 0.8s ease forwards;
+        }
+        
+        @keyframes slideUp {
+          from {
+            opacity: 0;
+            transform: translateY(50px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        
+        .animate-scroll-indicator {
+          animation: scroll-indicator 2s infinite;
+        }
+        
+        @keyframes scroll-indicator {
+          0%, 100% { transform: translateY(0); opacity: 0; }
+          50% { transform: translateY(10px); opacity: 1; }
+        }
+        
+        .animate-twinkle {
+          animation: twinkle 3s infinite;
+        }
+        
+        @keyframes twinkle {
+          0%, 100% { opacity: 0; }
+          50% { opacity: 1; }
+        }
+        
+        .button-glow {
+          box-shadow: 0 0 20px rgba(45, 212, 191, 0.3);
+        }
+        
+        .button-glow:hover {
+          box-shadow: 0 0 30px rgba(45, 212, 191, 0.5);
+        }
+        
+        .animate-pulse-slow {
+          animation: pulse-slow 4s infinite;
+        }
+        
+        @keyframes pulse-slow {
+          0%, 100% { opacity: 0.05; }
+          50% { opacity: 0.1; }
+        }
+        
+        .animate-fade-in {
+          animation: fadeIn 1s ease forwards;
+        }
+        
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+      `}</style>
     </div>
   );
 };
