@@ -26,13 +26,4 @@ text
 1. Copy `.env.example` to `.env`
 2. Update database credentials in `.env`
 
-## Development Timeline
-- **Day 1**: Foundation Setup
-- **Day 2**: Frontend Foundation
-- **Day 3**: User Interface Development
-- **Day 4**: Auction Display System
-- **Day 5**: Backend API Development
-- **Day 6**: Real-Time Bidding Logic
-- **Day 7**: Frontend-Backend Integration
-- **Day 8**: Polish & Optimization
 
